@@ -1,3 +1,129 @@
-body{
-    background-color: rgb(44, 77, 122);
+html, body {
+    height: 100%;
+    margin: 0;
+    font-family: system-ui, sans-serif;
+    color: #f4f7fb;
+    background-color: #103a60;
+}
+
+body {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(28px, 4vw) 18vw 1fr minmax(28px, 4vw);
+    grid-template-rows: minmax(32px, 4vh) 1fr minmax(32px, 4vh);
+    grid-template-areas:
+        ". . . ."
+        ". main main ."
+        ". . . .";
+    background-color: #103a60;
+    overflow-x: hidden;
+}
+
+body::before {
+    content: '';
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: max(22vw, calc(18vw + 28px));
+    background-color: #3b101c;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.main {
+    position: relative;
+    z-index: 1;
+    grid-area: main;
+    display: grid;
+    grid-template-columns: 18vw 1fr;
+    gap: 24px;
+    min-width: 0;
+}
+
+.main__sidebar {
+    grid-column: 1;
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 160px;
+    padding: 1rem 0;
+}
+
+.main__sidebar-link {
+    display: block;
+    padding: 0.75rem 0.85rem 0.75rem 0.5rem;
+    border-radius: 6px;
+    color: #f4f7fb;
+    text-decoration: none;
+    font-weight: 600;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.main__sidebar-link:hover,
+.main__sidebar-link--active {
+    color: #ffdd57;
+    background-color: rgba(255, 221, 87, 0.12);
+}
+
+.main__content {
+    grid-column: 2;
+    min-width: 0;
+    overflow: auto;
+    border: 1px solid #2f6c96;
+    border-radius: 8px;
+    padding: 2rem;
+    color: #f0f0f0;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    background: linear-gradient(135deg, #1d5278 0%, #26628e 100%);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.main__content:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.main__content h1 {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    color: #ffdd57;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    letter-spacing: -0.5px;
+}
+
+.main__content p {
+    font-size: 1.2rem;
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+    color: #e0e0e0;
+    text-align: justify;
+}
+
+@media (max-width: 720px) {
+    body {
+        grid-template-columns: minmax(18px, 5vw) 1fr minmax(18px, 5vw);
+        grid-template-areas:
+            ". . ."
+            ". main ."
+            ". . .";
+    }
+
+    body::before {
+        width: 100%;
+        height: 140px;
+        inset: 0 0 auto;
+    }
+
+    .main {
+        grid-template-columns: 1fr;
+    }
+
+    .main__sidebar,
+    .main__content {
+        grid-column: 1;
+    }
+
+    .main__sidebar {
+        min-width: 0;
+    }
 }
