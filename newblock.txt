@@ -1,0 +1,31 @@
+/* Клетка / элемент галереи */
+.gallery-item {
+    position: absolute;
+    width: calc(50% - 8px);
+    height: calc(50% - 8px);
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.08);
+    background-color: rgba(16,58,96,0.4);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    --scale: 1;
+    transform: scale(var(--scale));
+    transition: left 0.6s ease-in-out,
+                top 0.6s ease-in-out,
+                transform 0.3s ease,
+                box-shadow 0.3s ease-in-out,
+                border-color 0.3s ease-in-out;
+}
+.pos1 { left: 0; top: 0; }
+.pos2 { left: calc(50% + 8px); top: 0; }
+.pos3 { left: calc(50% + 8px); top: calc(50% + 8px); }
+.pos4 { left: 0; top: calc(50% + 8px); }
+.gallery-item.active {
+    --scale: 1.05;
+}
+.gallery-item:hover {
+    transform: translateY(-4px) scale(var(--scale));
+    box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+    border-color: rgba(255,255,87,0.3);
+    z-index: 10;
+}

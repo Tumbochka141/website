@@ -1,23 +1,22 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Eulennest</title>
+    <link rel="icon" type="image/png" href="img/gashich.png">
+    <link rel="shortcut icon" type="image/png" href="img/gashich.png">
     <link rel="stylesheet" href="caine.css">
+    <script src="generator.js" defer></script>
 </head>
 <body>
     <main class="main">
-        <nav class="main__sidebar" aria-label="Primary navigation">
-            <ul class="main__sidebar-list">
-                <li><a class="main__sidebar-link main__sidebar-link--active" href="#" aria-current="page">Home</a></li>
-                <li><a class="main__sidebar-link" href="#">About</a></li>
-                <li><a class="main__sidebar-link" href="#">Projects</a></li>
-                <li><a class="main__sidebar-link" href="#">Contact</a></li>
-            </ul>
-        </nav>
+        <aside class="main__sidebar" aria-hidden="true"></aside>
         <header class="header">
-            <a href="#" class="logo">Unity Project</a>
+            <a href="#" class="logo" aria-label="Eulennest">
+                <img src="img/gashich.png" alt="">
+                <span>Eulennest</span>
+            </a>
             <nav class="nav">
                 <a href="#">Обзор</a>
                 <a href="#">Задания</a>
@@ -29,8 +28,47 @@
             </div>
         </header>
         <section class="main__content">
-            <h1></h1>
-            <p></p>
+            <div class="gallery-grid">
+                <div class="gallery-item">
+                    <div class="gallery-item-image-wrap">
+                        <img src="img/huli.png" alt="Пейзаж 1" class="gallery-img">
+                    </div>
+                    <div class="gallery-caption">
+                        <h4>Не можешь чего-то найти?</h4>
+                        <p>Тут не только 3 игры если что</p>
+                    </div>
+                </div>
+
+                <div class="gallery-item">
+                    <div class="gallery-item-image-wrap">
+                        <img src="img/monopoly.png" alt="Пейзаж 2" class="gallery-img">
+                    </div>
+                    <div class="gallery-caption">
+                        <h4>Монополия</h4>
+                        <p>Ну давай, скажи что у тебя крепкая дружба</p>
+                    </div>
+                </div>
+
+                <div class="gallery-item">
+                    <div class="gallery-item-image-wrap">
+                        <img src="img/mafia.png" alt="Пейзаж 3" class="gallery-img">
+                    </div>
+                    <div class="gallery-caption">
+                        <h4>Мафия</h4>
+                        <p>10 путан из 10</p>
+                    </div>
+                </div>
+
+                <div class="gallery-item">
+                    <div class="gallery-item-image-wrap">
+                        <img src="img/bunker.jpg" alt="Бункер" class="gallery-img">
+                    </div>
+                    <div class="gallery-caption">
+                        <h4>Бункер</h4>
+                        <p>Сборище уродцев</p>
+                    </div>
+                </div>
+            </div>
         </section>
     </main>
 </body>

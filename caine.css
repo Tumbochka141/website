@@ -1,9 +1,10 @@
-html, body {
+﻿html, body {
     height: 100%;
     margin: 0;
     font-family: system-ui, sans-serif;
     color: var(--color-text);
-    background-color: var(--color-bg);
+    background:
+        linear-gradient(135deg, #0f3557 0%, #123f66 44%, #0d3154 100%);
 }
 
 body {
@@ -37,7 +38,7 @@ body::before {
     grid-template-columns: 18vw 1fr;
     grid-template-rows: auto 1fr;
     min-width: 0;
-    column-gap: 48px;
+    column-gap: 44px;
     row-gap: 32px;
 }
 
@@ -45,7 +46,7 @@ body::before {
 :root {
     --color-bg: #103a60;
     --color-accent: #ffdd57;
-    --color-primary: #3b101c; /* Оригинальный глубокий бордовый сайдбара */
+    --color-primary: #3b101c; /* РћСЂРёРіРёРЅР°Р»СЊРЅС‹Р№ РіР»СѓР±РѕРєРёР№ Р±РѕСЂРґРѕРІС‹Р№ СЃР°Р№РґР±Р°СЂР° */
     --color-text: #f4f7fb;
     --color-muted: #e0e0e0;
     --color-border: #2f6c96;
@@ -58,56 +59,88 @@ body::before {
     grid-column: 1;
     grid-row: 1 / -1;
     align-self: stretch;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
     min-width: 160px;
-    padding: 1rem 0;
-    background-color: var(--sidebar-bg);
+    padding: 0;
+    background:
+        linear-gradient(180deg, rgba(255, 221, 87, 0.06) 0%, rgba(59, 16, 28, 0) 30%),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0) 42%),
+        var(--sidebar-bg);
+    box-shadow: inset -1px 0 rgba(255, 221, 87, 0.12);
 }
 
-
-
-/* ==== Современная «glass»‑шапка с эффектом стекла ==== */
+/* ==== РЎРѕРІСЂРµРјРµРЅРЅР°СЏ В«glassВ»вЂ‘С€Р°РїРєР° СЃ СЌС„С„РµРєС‚РѕРј СЃС‚РµРєР»Р° ==== */
 .header {
     grid-column: 2;
     grid-row: 1;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1.2rem 2rem;
+    padding: 1.1rem 2rem;
 
-    /* Эффект матового стекла (90% белого + 10% синего оттенка) */
+    /* Р­С„С„РµРєС‚ РјР°С‚РѕРІРѕРіРѕ СЃС‚РµРєР»Р° (90% Р±РµР»РѕРіРѕ + 10% СЃРёРЅРµРіРѕ РѕС‚С‚РµРЅРєР°) */
     background: rgba(245, 248, 255, 0.9);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border: 1px solid rgba(255, 255, 255, 0.4);
-    border-radius: 16px;
+    border-radius: 14px;
+    border-bottom: 2px solid #ffdd57;
 
-    /* Темно-синий текст для идеальной читаемости и контраста */
+    /* РўРµРјРЅРѕ-СЃРёРЅРёР№ С‚РµРєСЃС‚ РґР»СЏ РёРґРµР°Р»СЊРЅРѕР№ С‡РёС‚Р°РµРјРѕСЃС‚Рё Рё РєРѕРЅС‚СЂР°СЃС‚Р° */
     color: #103a60;
-    box-shadow: 0 8px 32px 0 rgba(16, 58, 96, 0.15);
+    box-shadow: 0 10px 28px rgba(6, 25, 42, 0.16);
 
-    /* Расширение хедера в стороны */
+    /* Р Р°СЃС€РёСЂРµРЅРёРµ С…РµРґРµСЂР° РІ СЃС‚РѕСЂРѕРЅС‹ */
     margin: 0 -24px;
     width: calc(100% + 48px);
     box-sizing: border-box;
 }
 
-/* Внутренние элементы шапки */
+/* Р’РЅСѓС‚СЂРµРЅРЅРёРµ СЌР»РµРјРµРЅС‚С‹ С€Р°РїРєРё */
 .header .logo {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: var(--color-primary); /* Благородный бордовый логотип Unity */
+    min-width: 0;
+    width: 24rem;
+    height: 3.75rem;
+    padding: 0.4rem 1.75rem 0.4rem 0.4rem;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 1.25rem;
+    overflow: hidden;
+    color: var(--color-primary); /* Р‘Р»Р°РіРѕСЂРѕРґРЅС‹Р№ Р±РѕСЂРґРѕРІС‹Р№ Р»РѕРіРѕС‚РёРї Unity */
+    background: rgba(59, 16, 28, 0.08);
+    border: 1px solid rgba(59, 16, 28, 0.16);
+    border-bottom: 2px solid var(--color-accent);
+    border-radius: 14px;
     text-decoration: none;
-    transition: transform 0.2s ease, color 0.2s ease, text-shadow 0.2s ease;
+    box-shadow: 0 8px 18px rgba(59, 16, 28, 0.12);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
     cursor: pointer;
 }
 
 .header .logo:hover {
-    color: var(--color-primary); /* Остается благородным бордовым */
-    transform: scale(1.03); /* Легкое интерактивное увеличение */
-    text-shadow: 0 0 10px rgba(59, 16, 28, 0.4); /* Бордовое свечение вокруг */
+    transform: scale(1.03); /* Р›РµРіРєРѕРµ РёРЅС‚РµСЂР°РєС‚РёРІРЅРѕРµ СѓРІРµР»РёС‡РµРЅРёРµ */
+    border-color: rgba(59, 16, 28, 0.26);
+    box-shadow: 0 10px 22px rgba(59, 16, 28, 0.18);
+}
+
+.header .logo img {
+    width: 3rem;
+    height: 3rem;
+    flex: 0 0 auto;
+    display: block;
+    object-fit: cover;
+    object-position: center 44%;
+    border-radius: 11px;
+}
+
+.header .logo span {
+    font-family: "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
+    font-size: 1.85rem;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--color-primary);
+    letter-spacing: 0;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.38);
 }
 
 .header .nav {
@@ -116,14 +149,14 @@ body::before {
 }
 
 .header .nav a {
-    color: #103a60; /* Темно-синие читаемые ссылки */
+    color: #103a60; /* РўРµРјРЅРѕ-СЃРёРЅРёРµ С‡РёС‚Р°РµРјС‹Рµ СЃСЃС‹Р»РєРё */
     text-decoration: none;
     font-weight: 600;
     transition: color .2s, text-shadow .2s;
 }
 
 .header .nav a:hover {
-    color: var(--color-primary); /* Смена на бордовый при наведении */
+    color: var(--color-primary); /* РЎРјРµРЅР° РЅР° Р±РѕСЂРґРѕРІС‹Р№ РїСЂРё РЅР°РІРµРґРµРЅРёРё */
     text-shadow: 0 0 8px rgba(59, 16, 28, 0.2);
 }
 
@@ -140,8 +173,8 @@ body::before {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #103a60; /* Темно-синие иконки */
-    background-color: rgba(16, 58, 96, 0.08); /* Нежный темно-синий фон под иконки */
+    color: #103a60; /* РўРµРјРЅРѕ-СЃРёРЅРёРµ РёРєРѕРЅРєРё */
+    background-color: rgba(16, 58, 96, 0.08); /* РќРµР¶РЅС‹Р№ С‚РµРјРЅРѕ-СЃРёРЅРёР№ С„РѕРЅ РїРѕРґ РёРєРѕРЅРєРё */
     border-radius: 50%;
     border: 1px solid rgba(16, 58, 96, 0.15);
     transition: all .2s ease;
@@ -149,8 +182,8 @@ body::before {
 
 .header .actions .bell:hover,
 .header .actions .avatar:hover {
-    color: var(--color-primary); /* Бордовый при наведении */
-    background-color: rgba(59, 16, 28, 0.08); /* Нежный бордовый фон */
+    color: var(--color-primary); /* Р‘РѕСЂРґРѕРІС‹Р№ РїСЂРё РЅР°РІРµРґРµРЅРёРё */
+    background-color: rgba(59, 16, 28, 0.08); /* РќРµР¶РЅС‹Р№ Р±РѕСЂРґРѕРІС‹Р№ С„РѕРЅ */
     border-color: rgba(59, 16, 28, 0.2);
     cursor: pointer;
 }
@@ -188,7 +221,8 @@ body::before {
 
 .main__sidebar-link--active {
     color: var(--color-accent);
-    background-color: var(--link-hover);
+    background-color: transparent;
+    border-left: 4px solid #ffdd57;
 }
 
 .main__sidebar-link:hover,
@@ -202,34 +236,118 @@ body::before {
     grid-row: 2;
     min-width: 0;
     overflow: auto;
-    border: 1px solid #2f6c96;
-    border-radius: 8px;
-    padding: 2rem;
+    border: 1px solid rgba(154, 205, 235, 0.22);
+    border-radius: 14px;
+    padding: clamp(1.5rem, 2.2vw, 2.25rem);
     color: #f0f0f0;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    background: linear-gradient(135deg, #1d5278 0%, #26628e 100%);
+    box-shadow: 0 16px 36px rgba(4, 22, 38, 0.18);
+    background:
+        linear-gradient(135deg, rgba(39, 101, 143, 0.9) 0%, rgba(31, 82, 121, 0.92) 100%);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 .main__content:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    transform: translateY(-1px);
+    box-shadow: 0 18px 40px rgba(4, 22, 38, 0.22);
 }
 
-.main__content h1 {
-    font-size: 2.5rem;
-    margin-bottom: 1rem;
-    color: #ffdd57;
+.main__content h1,
+.content-title {
+    font-size: 2.2rem;
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    color: var(--color-accent); /* Р—РѕР»РѕС‚РёСЃС‚Рѕ-Р¶РµР»С‚С‹Р№ Р·Р°РіРѕР»РѕРІРѕРє */
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
     letter-spacing: -0.5px;
 }
 
-.main__content p {
-    font-size: 1.2rem;
-    line-height: 1.6;
-    margin-bottom: 1.5rem;
-    color: #e0e0e0;
-    text-align: justify;
+/* РЎРµС‚РєР° РіР°Р»РµСЂРµРё */
+.gallery-grid {
+    position: relative;
+    width: 100%;
+    max-width: 900px;
+    aspect-ratio: 4/3;
+    margin: 0 auto;
+}
+
+/* РљР»РµС‚РєР° / СЌР»РµРјРµРЅС‚ РіР°Р»РµСЂРµРё */
+.gallery-item {
+    position: absolute;
+    width: calc(50% - 8px);
+    height: calc(50% - 8px);
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.12);
+    background-color: rgba(16,58,96,0.4);
+    box-shadow: 0 10px 22px rgba(4, 20, 34, 0.18);
+    --scale: 1;
+    transform: scale(var(--scale));
+    transition: left 0.6s ease-in-out,
+                top 0.6s ease-in-out,
+                transform 0.3s ease,
+                box-shadow 0.3s ease-in-out,
+                border-color 0.3s ease-in-out;
+}
+.pos1 { left: 0; top: 0; }
+.pos2 { left: calc(50% + 8px); top: 0; }
+.pos3 { left: calc(50% + 8px); top: calc(50% + 8px); }
+.pos4 { left: 0; top: calc(50% + 8px); }
+.gallery-item.active {
+    --scale: 1.05;
+}
+.gallery-item:hover {
+    transform: translateY(-4px) scale(var(--scale));
+    box-shadow: 0 16px 30px rgba(4, 20, 34, 0.26);
+    border-color: rgba(255, 221, 87, 0.42);
+    z-index: 10;
+}/* РћР±РµСЂС‚РєР° РґР»СЏ РєР°СЂС‚РёРЅРєРё, С‡С‚РѕР±С‹ Р·Р°РґР°С‚СЊ РїСЂРѕРїРѕСЂС†РёРё */
+.gallery-item-image-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9; /* Р‘РѕР»РµРµ РІС‹С‚СЏРЅСѓС‚С‹Рµ Рё РєРѕРјРїР°РєС‚РЅС‹Рµ РїСЂРѕРїРѕСЂС†РёРё */
+    overflow: hidden;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* РЎР°РјР° РєР°СЂС‚РёРЅРєР° */
+.gallery-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.5s ease;
+}
+
+/* РРЅС‚РµСЂР°РєС‚РёРІРЅС‹Р№ СЌС„С„РµРєС‚: РїСЂРё РЅР°РІРµРґРµРЅРёРё РїСЂРѕСЃС‚Рѕ Р»РµРіРєРѕРµ СѓРІРµР»РёС‡РµРЅРёРµ */
+.gallery-item:hover .gallery-img {
+    transform: scale(1.05);
+}
+
+/* РџРѕРґСЂРёСЃСѓРЅРѕС‡РЅР°СЏ РїРѕРґРїРёСЃСЊ РЎРўР РћР“Рћ РџРћР” Р¤РћРўРћР“Р РђР¤РР•Р™ */
+.gallery-caption {
+    padding: 1rem 1.2rem;
+    background-color: rgba(14, 51, 82, 0.78); /* РџРѕР»СѓРїСЂРѕР·СЂР°С‡РЅС‹Р№ С‚РµРјРЅРѕ-СЃРёРЅРёР№ С„РѕРЅ РїРѕРґРїРёСЃРё */
+    text-align: center; /* Р¦РµРЅС‚СЂРёСЂСѓРµРј РЅР°Р·РІР°РЅРёСЏ Рё РѕРїРёСЃР°РЅРёСЏ РїРѕ С†РµРЅС‚СЂСѓ СЃС‚СЂРѕРєРё */
+    transition: background-color 0.3s ease;
+}
+
+/* РџР»Р°РІРЅС‹Р№ РїРµСЂРµС…РѕРґ С„РѕРЅР° РїРѕРґРїРёСЃРё РІ Р±Р»Р°РіРѕСЂРѕРґРЅС‹Р№ Р±РѕСЂРґРѕРІС‹Р№ С†РІРµС‚ СЃР°Р№РґР±Р°СЂР° РїСЂРё С…РѕРІРµСЂРµ РІСЃРµР№ РєР°СЂС‚РѕС‡РєРё */
+.gallery-item:hover .gallery-caption {
+    background-color: rgba(59, 16, 28, 0.85);
+}
+
+.gallery-caption h4 {
+    margin: 0 0 0.2rem 0;
+    font-size: 1rem; /* Р§СѓС‚СЊ СѓРјРµРЅСЊС€РёР»Рё С€СЂРёС„С‚ */
+    font-weight: 600;
+    color: #ffffff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.gallery-caption p {
+    margin: 0;
+    font-size: 0.8rem; /* Р‘РѕР»РµРµ РґРµР»РёРєР°С‚РЅС‹Р№ СЂР°Р·РјРµСЂ */
+    color: rgba(255, 255, 255, 0.6);
 }
 
 @media (prefers-color-scheme: light) {
@@ -268,5 +386,19 @@ body::before {
 
     .main__sidebar {
         min-width: 0;
+        padding-bottom: 1rem;
     }
+
 }
+
+
+
+
+
+
+
+
+
+
+
+
