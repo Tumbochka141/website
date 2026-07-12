@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="caine.css">
     <script src="generator.js" defer></script>
 </head>
-<body>
+<body class="is-night">
     <main class="main">
         <aside class="main__sidebar" aria-hidden="true"></aside>
         <header class="header">
@@ -18,18 +18,34 @@
                 <span>Eulennest</span>
             </a>
             <nav class="nav">
-                <a href="#">Обзор</a>
-                <a href="#">Задания</a>
-                <a href="#">Профиль</a>
+                <a href="#">Гнездо</a>
+                <a href="#">Игры</a>
+                <a href="#">Вечер</a>
             </nav>
             <div class="actions">
-                <span class="bell" title="Уведомления">🔔</span>
-                <span class="avatar" title="Профиль">A</span>
+                <button class="day-night-toggle" type="button" aria-label="Включить ночной режим" aria-pressed="false">
+                    <span class="day-night-toggle__sky" aria-hidden="true">
+                        <span class="day-night-toggle__moon"></span>
+                        <span class="day-night-toggle__orbit day-night-toggle__orbit--outer">
+                            <span class="day-night-toggle__sun day-night-toggle__sun--large"></span>
+                        </span>
+                        <span class="day-night-toggle__orbit day-night-toggle__orbit--inner">
+                            <span class="day-night-toggle__sun day-night-toggle__sun--small"></span>
+                        </span>
+                        <span class="day-night-toggle__cloud day-night-toggle__cloud--left"></span>
+                        <span class="day-night-toggle__cloud day-night-toggle__cloud--right"></span>
+                        <span class="day-night-toggle__main-sun">☀</span>
+                        <img class="day-night-toggle__owl" src="img/night-gray-owl-branch.png" alt="">
+                        <img class="day-night-toggle__sleeping-owl" src="img/sleeping-gray-owl-branch.png" alt="">
+                        <span class="day-night-toggle__sleep">Zzz</span>
+                    </span>
+                    <span class="day-night-toggle__label">NIGHT MODE</span>
+                </button>
             </div>
         </header>
         <section class="main__content">
             <div class="gallery-grid">
-                <div class="gallery-item">
+                <a href="catalog.html" class="gallery-item gallery-item--link" aria-label="Открыть каталог игр">
                     <div class="gallery-item-image-wrap">
                         <img src="img/huli.png" alt="Пейзаж 1" class="gallery-img">
                     </div>
@@ -37,7 +53,7 @@
                         <h4>Не можешь чего-то найти?</h4>
                         <p>Тут не только 3 игры если что</p>
                     </div>
-                </div>
+                </a>
 
                 <div class="gallery-item">
                     <div class="gallery-item-image-wrap">
