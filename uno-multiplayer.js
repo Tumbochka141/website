@@ -6,12 +6,12 @@ const CLASSES = { Красный: "red", Желтый: "yellow", Зеленый:
 const LABELS = { skip: "⊘", reverse: "↻", "+2": "+2", wild: "★", "+4": "+4" };
 const $ = (selector) => document.querySelector(selector);
 const ui = {
-    config: $("#config-notice"), entry: $("#entry-panel"), room: $("#room-panel"), game: $("#game-panel"),
-    name: $("#player-name"), size: $("#room-size"), codeInput: $("#room-code-input"), code: $("#room-code"),
-    create: $("#create-room"), join: $("#join-room"), leave: $("#leave-room"), start: $("#start-game"),
-    players: $("#players"), opponents: $("#opponents"), status: $("#game-status"), hand: $("#hand"),
-    top: $("#top-card"), draw: $("#draw-card"), uno: $("#call-uno"), error: $("#error"),
-    connection: $("#connection-label"), colorDialog: $("#color-dialog")
+    entry: $("#online-entry"), room: $("#online-room"), game: $(".game-board"),
+    name: $("#online-name"), codeInput: $("#online-code-input"), code: $("#online-code"),
+    create: $("#online-create"), join: $("#online-join"), leave: $("#online-leave"), start: $("#online-start"),
+    players: $("#online-players"), opponents: $("#opponents"), status: $("#status"), hand: $("#player-hand"),
+    top: $("#discard-pile"), draw: $("#draw-pile"), deckCount: $("#deck-count"), uno: $("#uno-call"),
+    pass: $("#pass-turn"), reveal: $("#reveal-hand"), error: $("#online-error"), colorDialog: $("#color-dialog")
 };
 
 let mp = null;
@@ -19,27 +19,30 @@ let room = null;
 let publicState = null;
 let hand = [];
 let commandQueue = Promise.resolve();
+let gameConnected = false;
 
 boot();
 
 async function boot() {
     const savedName = localStorage.getItem("eulennest-player-name");
     if (savedName) ui.name.value = savedName;
+    ui.pass.hidden = true;
+    ui.reveal.hidden = true;
+    ui.status.textContent = "Создай комнату или войди по коду, чтобы начать.";
     if (!isFirebaseConfigured) {
-        ui.config.hidden = false;
-        ui.connection.textContent = "Firebase не настроен";
+        ui.error.textContent = "Для игры по сети сначала заполни firebase-config.js.";
         ui.create.disabled = ui.join.disabled = true;
         return;
     }
     try {
         mp = new Multiplayer(firebaseConfig);
         await mp.connect();
-        ui.connection.textContent = "Сеть готова";
+        ui.status.textContent = "Сеть готова. Создай комнату или войди по коду.";
     } catch (error) { showError(error); }
 }
 
 ui.codeInput.addEventListener("input", () => ui.codeInput.value = Multiplayer.normalizeRoomId(ui.codeInput.value));
-ui.create.addEventListener("click", async () => run(async () => enterRoom(await mp.createRoom(saveName(), Number(ui.size.value)))));
+ui.create.addEventListener("click", async () => run(async () => enterRoom(await mp.createRoom(saveName(), 4))));
 ui.join.addEventListener("click", async () => run(async () => enterRoom(await mp.joinRoom(ui.codeInput.value, saveName()))));
 ui.leave.addEventListener("click", async () => { await mp.leave(); location.reload(); });
 ui.code.addEventListener("click", async () => { await navigator.clipboard.writeText(mp.roomId); ui.code.textContent = "СКОПИРОВАНО"; setTimeout(() => ui.code.textContent = mp.roomId, 900); });
@@ -54,7 +57,7 @@ async function enterRoom(code) {
     mp.subscribeRoom((value) => {
         room = value;
         renderLobby();
-        if (value.meta?.status !== "lobby" && ui.game.hidden) connectGame();
+        if (value.meta?.status !== "lobby" && !gameConnected) connectGame();
     });
 }
 
@@ -63,17 +66,21 @@ function renderLobby() {
     ui.players.replaceChildren();
     for (const [id, player] of Object.entries(room.players ?? {})) {
         const item = document.createElement("div");
-        item.className = `player ${id === room.meta.hostId ? "host" : ""}`;
+        item.className = `online-player ${id === room.meta.hostId ? "is-host" : ""}`;
         item.textContent = player.name;
         ui.players.append(item);
     }
     const isHost = room.meta.hostId === mp.user.uid;
     ui.start.hidden = !isHost;
     ui.start.disabled = Object.keys(room.players ?? {}).length < 2 || room.meta.status !== "lobby";
+    if (room.meta.status === "lobby") ui.status.textContent = isHost
+        ? "Когда все войдут, нажми «Начать игру»."
+        : "Ждём, когда ведущий начнёт игру.";
 }
 
 async function connectGame() {
-    ui.entry.hidden = true; ui.room.hidden = false; ui.game.hidden = false;
+    gameConnected = true;
+    ui.entry.hidden = true; ui.room.hidden = false;
     mp.subscribePublicState((value) => { publicState = value; renderGame(); });
     mp.subscribeHand((value) => { hand = value; renderGame(); });
     if (room.meta.hostId === mp.user.uid) {
@@ -144,22 +151,32 @@ function next(engine, steps = 1) { engine.current = nextIndex(engine, steps); }
 async function saveEngine(engine, message) {
     const players = {};
     for (const id of engine.order) players[id] = { name: playerName(id), cardCount: engine.hands[id].length };
-    const state = { phase: engine.winner ? "finished" : "playing", revision: engine.revision, currentPlayerId: engine.order[engine.current], currentColor: engine.currentColor, topCard: engine.discard.at(-1), direction: engine.direction, winner: engine.winner, players, message };
+    const state = { phase: engine.winner ? "finished" : "playing", revision: engine.revision, currentPlayerId: engine.order[engine.current], currentColor: engine.currentColor, topCard: engine.discard.at(-1), deckCount: engine.deck.length, direction: engine.direction, winner: engine.winner, players, message };
     await mp.setGame(engine, state, engine.hands);
 }
 
 function renderGame() {
     if (!publicState) return;
+    const myTurn = publicState.currentPlayerId === mp.user.uid && !publicState.winner;
     ui.opponents.replaceChildren();
     for (const [id, player] of Object.entries(publicState.players ?? {})) if (id !== mp.user.uid) {
-        const item = document.createElement("div"); item.className = `player ${id === publicState.currentPlayerId ? "host" : ""}`; item.textContent = `${player.name} · ${player.cardCount}`; ui.opponents.append(item);
+        const item = document.createElement("div");
+        item.className = `opponent is-human ${id === publicState.currentPlayerId ? "is-active" : ""}`;
+        const name = document.createElement("strong");
+        const count = document.createElement("span");
+        name.textContent = player.name;
+        count.textContent = `${player.cardCount} карт`;
+        item.append(name, count);
+        ui.opponents.append(item);
     }
     ui.status.textContent = publicState.winner ? `${publicState.players[publicState.winner].name} победил!` : `${publicState.message} Цвет: ${publicState.currentColor}.`;
     ui.top.replaceChildren(cardElement(publicState.topCard));
+    ui.deckCount.textContent = publicState.deckCount ?? "?";
     const top = publicState.topCard;
     ui.hand.replaceChildren(...hand.map((card, index) => {
         const playable = card.type === "wild" || card.color === publicState.currentColor || card.value === top.value;
         const el = cardElement(card, true, playable);
+        el.disabled = !myTurn || !playable;
         el.onclick = async () => {
             let color = card.color;
             if (card.type === "wild") color = await chooseColor();
@@ -169,16 +186,35 @@ function renderGame() {
         };
         return el;
     }));
-    const myTurn = publicState.currentPlayerId === mp.user.uid && !publicState.winner;
-    ui.draw.disabled = !myTurn; ui.hand.style.pointerEvents = myTurn ? "auto" : "none";
-    ui.game.classList.toggle("my-turn", myTurn);
+    ui.draw.disabled = !myTurn;
+    ui.uno.disabled = !myTurn || hand.length !== 1;
+    ui.hand.style.pointerEvents = myTurn ? "auto" : "none";
+    ui.game.classList.toggle("is-my-turn", myTurn);
 }
 
-function cardElement(card, button = false, playable = false) { const el = document.createElement(button ? "button" : "div"); if (button) el.type = "button"; el.className = `card ${card?.color ? CLASSES[card.color] : "wild"}${playable ? " playable" : ""}`; const span = document.createElement("span"); span.textContent = card ? label(card) : "?"; el.append(span); return el; }
+function cardElement(card, button = false, playable = false) {
+    const el = document.createElement(button ? "button" : "div");
+    if (button) el.type = "button";
+    el.className = `uno-card uno-card--${card?.color ? CLASSES[card.color] : "wild"}${playable ? " is-playable" : ""}`;
+    const span = document.createElement("span");
+    span.className = "uno-card__value";
+    span.textContent = card ? label(card) : "?";
+    el.append(span);
+    return el;
+}
 function label(card) { return LABELS[card.value] ?? String(card.value); }
 function playerName(id) { return room?.players?.[id]?.name ?? publicState?.players?.[id]?.name ?? "Игрок"; }
 function send(type, data = {}) { if (publicState) run(() => mp.sendCommand(type, data, publicState.revision)); }
-function chooseColor() { return new Promise((resolve) => { ui.colorDialog.showModal(); ui.colorDialog.querySelectorAll("button").forEach((button) => button.onclick = () => { ui.colorDialog.close(); resolve(button.dataset.color); }); }); }
+function chooseColor() {
+    const colors = { red: "Красный", yellow: "Желтый", green: "Зеленый", blue: "Синий" };
+    return new Promise((resolve) => {
+        ui.colorDialog.showModal();
+        ui.colorDialog.querySelectorAll("button").forEach((button) => button.onclick = () => {
+            ui.colorDialog.close();
+            resolve(colors[button.dataset.color]);
+        });
+    });
+}
 
 function createDeck() { const deck = []; for (const color of COLORS) { deck.push({ color, value: 0, type: "number" }); for (let n = 1; n <= 9; n++) deck.push({ color, value: n, type: "number" }, { color, value: n, type: "number" }); for (const value of ["skip", "reverse", "+2"]) deck.push({ color, value, type: "action" }, { color, value, type: "action" }); } for (let i = 0; i < 4; i++) deck.push({ color: null, value: "wild", type: "wild" }, { color: null, value: "+4", type: "wild" }); return deck; }
 function shuffle(deck) { for (let i = deck.length - 1; i; i--) { const j = Math.floor(Math.random() * (i + 1)); [deck[i], deck[j]] = [deck[j], deck[i]]; } return deck; }

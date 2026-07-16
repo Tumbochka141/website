@@ -305,6 +305,33 @@
         .game-heading { align-items: center; }
         .game-heading > div:first-child { padding-left: clamp(18px, 2.6vw, 38px); }
 
+        .mode-switch {
+            display: flex;
+            gap: 5px;
+            width: max-content;
+            margin-top: 11px;
+            padding: 4px;
+            border: 1px solid rgba(214, 183, 81, .32);
+            border-radius: 999px;
+            background: rgba(7, 28, 46, .72);
+        }
+
+        .mode-switch a {
+            padding: 7px 11px;
+            border-radius: 999px;
+            color: var(--cream-muted);
+            font: 700 .55rem var(--font-display);
+            letter-spacing: .035em;
+            text-decoration: none;
+            text-transform: uppercase;
+        }
+
+        html:not(.online-mode) .mode-local,
+        html.online-mode .mode-online { color: var(--wine); background: var(--gold-bright); }
+        html:not(.online-mode) .online-only,
+        html.online-mode .local-only { display: none !important; }
+        [hidden] { display: none !important; }
+
         .setup {
             display: grid;
             grid-template-columns: repeat(2, minmax(112px, 1fr)) auto;
@@ -319,8 +346,51 @@
         .setup-field { display: grid; gap: 6px; }
         .setup-field span { color: var(--gold-bright); font-size: .56rem; letter-spacing: .035em; }
         .setup select { width: 100%; min-height: 42px; }
+        .setup input {
+            width: 100%;
+            min-height: 42px;
+            padding: 0 12px;
+            border: 1px solid rgba(214, 183, 81, .55);
+            border-radius: 8px;
+            color: var(--cream);
+            background: var(--navy-900);
+            font: 600 .78rem var(--font-body);
+        }
+        .setup input:focus { border-color: var(--gold-bright); outline: none; }
         .setup .control-button { align-self: end; }
         .setup-summary { grid-column: 1 / -1; color: var(--cream-muted); font-size: .56rem; letter-spacing: .025em; }
+
+        .online-entry {
+            grid-template-columns: minmax(130px, 1fr) auto minmax(120px, .8fr) auto;
+            min-width: min(100%, 660px);
+        }
+
+        .online-room {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 14px;
+            padding: 12px 15px;
+            border: 1px solid rgba(255, 232, 120, .42);
+            border-radius: 14px;
+            background: linear-gradient(145deg, rgba(76, 18, 36, .94), rgba(40, 11, 25, .94));
+        }
+
+        .room-code {
+            color: var(--gold-bright);
+            border: 0;
+            background: none;
+            cursor: pointer;
+            font: 800 1.05rem var(--font-display);
+            letter-spacing: .12em;
+        }
+
+        .online-players { display: flex; flex-wrap: wrap; gap: 7px; }
+        .online-player { padding: 7px 10px; border-radius: 999px; color: var(--cream); background: rgba(7, 28, 46, .76); font-size: .72rem; }
+        .online-player.is-host::after { content: " · ведущий"; color: var(--gold); }
+        .online-actions { display: flex; gap: 8px; }
+        .online-error { min-height: 22px; margin: -4px 0 8px; color: #ffb9b9; text-align: right; }
 
         .game-board::before,
         .game-board::after {
@@ -390,9 +460,13 @@
             .game-heading > div:first-child { padding-left: 0; }
             .setup { grid-template-columns: repeat(2, minmax(0, 1fr)); min-width: 0; }
             .setup .control-button { grid-column: 1 / -1; }
+            .online-entry { grid-template-columns: 1fr 1fr; }
+            .online-entry .control-button { grid-column: auto; }
+            .online-room { grid-template-columns: 1fr; }
+            .online-actions { flex-wrap: wrap; }
         }
     </style>
-    <script src="uno.js" defer></script>
+    <script>document.documentElement.classList.toggle("online-mode", new URLSearchParams(location.search).get("mode") === "online");</script>
 </head>
 <body>
     <header class="site-header">
@@ -408,8 +482,12 @@
         <div class="game-heading">
             <div>
                 <h1>UNO</h1>
+                <nav class="mode-switch" aria-label="Режим игры">
+                    <a class="mode-local" href="uno.html">За одним столом</a>
+                    <a class="mode-online" href="uno.html?mode=online">По сети</a>
+                </nav>
             </div>
-            <div class="setup" aria-label="Настройка участников">
+            <div class="setup local-only" aria-label="Настройка участников">
                 <label class="setup-field" for="player-count">
                     <span>Всего мест</span>
                     <select id="player-count">
@@ -429,7 +507,29 @@
                 <button class="control-button control-button--gold" id="new-game" type="button">Новая партия</button>
                 <span class="setup-summary" id="setup-summary">1 игрок · 2 бота</span>
             </div>
+            <div class="setup online-entry online-only" id="online-entry" aria-label="Подключение к сетевой игре">
+                <label class="setup-field" for="online-name">
+                    <span>Твоё имя</span>
+                    <input id="online-name" maxlength="24" value="Совёнок" autocomplete="nickname">
+                </label>
+                <button class="control-button control-button--gold" id="online-create" type="button">Создать комнату</button>
+                <label class="setup-field" for="online-code-input">
+                    <span>Код комнаты</span>
+                    <input id="online-code-input" maxlength="6" placeholder="ABC234" autocomplete="off">
+                </label>
+                <button class="control-button" id="online-join" type="button">Войти</button>
+            </div>
         </div>
+
+        <section class="online-room online-only" id="online-room" hidden aria-label="Сетевая комната">
+            <div>Код: <button class="room-code" id="online-code" type="button" title="Скопировать код">——</button></div>
+            <div class="online-players" id="online-players"></div>
+            <div class="online-actions">
+                <button class="control-button control-button--gold" id="online-start" type="button">Начать игру</button>
+                <button class="control-button" id="online-leave" type="button">Выйти</button>
+            </div>
+        </section>
+        <p class="online-error online-only" id="online-error" role="alert"></p>
 
         <section class="game-board" aria-label="Игровой стол UNO">
             <div class="opponents" id="opponents" aria-label="Соперники"></div>
@@ -465,5 +565,21 @@
             <button class="color-choice" type="button" data-color="blue" aria-label="Синий" style="background: var(--blue)"></button>
         </div>
     </dialog>
+    <script>
+        if (document.documentElement.classList.contains("online-mode")) {
+            if (location.protocol === "file:") {
+                const error = document.querySelector("#online-error");
+                error.textContent = "Онлайн-режим нужно открыть через GitHub Pages или локальный сервер, а не как file://.";
+                document.querySelector("#online-create").disabled = true;
+                document.querySelector("#online-join").disabled = true;
+            } else {
+                import("./uno-multiplayer.js");
+            }
+        } else {
+            const script = document.createElement("script");
+            script.src = "uno.js";
+            document.body.append(script);
+        }
+    </script>
 </body>
 </html>

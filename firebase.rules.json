@@ -14,7 +14,7 @@
         "players": {
           ".read": "auth != null",
           "$uid": {
-            ".write": "auth != null && ($uid === auth.uid || root.child('rooms').child($roomId).child('meta/hostId').val() === auth.uid) && (newData.val() === null || data.exists() || root.child('rooms').child($roomId).child('players').numChildren() < root.child('rooms').child($roomId).child('meta/maxPlayers').val())",
+            ".write": "auth != null && ($uid === auth.uid || root.child('rooms').child($roomId).child('meta/hostId').val() === auth.uid)",
             ".validate": "newData.val() === null || (newData.hasChildren(['name', 'joinedAt']) && newData.child('name').isString() && newData.child('name').val().length <= 24)"
           }
         },

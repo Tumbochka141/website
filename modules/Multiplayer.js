@@ -1,9 +1,9 @@
-import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
-import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
+import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js";
 import {
     getDatabase, ref, get, set, update, remove, push, onValue, onChildAdded,
     onDisconnect, runTransaction, serverTimestamp
-} from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
+} from "https://www.gstatic.com/firebasejs/12.16.0/firebase-database.js";
 
 const ROOM_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
@@ -72,6 +72,12 @@ export class Multiplayer {
         const meta = metaSnapshot.val();
         if (!meta) throw new Error("Комната не найдена.");
         if (meta.status !== "lobby") throw new Error("Партия в этой комнате уже началась.");
+
+        const playersSnapshot = await get(ref(this.db, `rooms/${normalizedRoomId}/players`));
+        const players = playersSnapshot.val() ?? {};
+        if (!players[this.user.uid] && Object.keys(players).length >= meta.maxPlayers) {
+            throw new Error("В комнате уже нет свободных мест.");
+        }
 
         const playerRef = ref(this.db, `rooms/${normalizedRoomId}/players/${this.user.uid}`);
         const result = await runTransaction(playerRef, (current) => current ?? {
