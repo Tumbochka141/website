@@ -5,6 +5,7 @@ const COLORS = ["Красный", "Желтый", "Зеленый", "Синий"
 const CLASSES = { Красный: "red", Желтый: "yellow", Зеленый: "green", Синий: "blue" };
 const LABELS = { skip: "⊘", reverse: "↻", "+2": "+2", wild: "★", "+4": "+4" };
 const ROOM_STORAGE_KEY = "eulennest-uno-room";
+const PLAYER_NAME_STORAGE_KEY = "eulennest-player-name";
 const $ = (selector) => document.querySelector(selector);
 const ui = {
     entry: $("#online-entry"), room: $("#online-room"), game: $(".game-board"),
@@ -27,8 +28,9 @@ let renderedDirection = null;
 boot();
 
 async function boot() {
-    const savedName = localStorage.getItem("eulennest-player-name");
-    if (savedName) ui.name.value = savedName;
+    const savedName = localStorage.getItem(PLAYER_NAME_STORAGE_KEY);
+    const discordName = window.DiscordProfile?.getProfile()?.name;
+    if (savedName || discordName) ui.name.value = savedName || discordName;
     ui.pass.hidden = true;
     ui.reveal.hidden = true;
     ui.direction.hidden = true;
@@ -57,6 +59,14 @@ async function boot() {
 }
 
 ui.codeInput.addEventListener("input", () => ui.codeInput.value = Multiplayer.normalizeRoomId(ui.codeInput.value));
+ui.name.addEventListener("input", () => {
+    const value = ui.name.value.replace(/\s+/g, " ").slice(0, 24);
+    localStorage.setItem(PLAYER_NAME_STORAGE_KEY, value);
+});
+ui.name.addEventListener("change", () => {
+    if (!ui.name.value.trim()) ui.name.value = "Совёнок";
+    localStorage.setItem(PLAYER_NAME_STORAGE_KEY, ui.name.value.trim().slice(0, 24));
+});
 ui.create.addEventListener("click", async () => run(async () => {
     const identity = saveIdentity();
     return enterRoom(await mp.createRoom(identity.name, 4, identity.avatarUrl));
@@ -292,9 +302,9 @@ function createDeck() { const deck = []; for (const color of COLORS) { deck.push
 function shuffle(deck) { for (let i = deck.length - 1; i; i--) { const j = Math.floor(Math.random() * (i + 1)); [deck[i], deck[j]] = [deck[j], deck[i]]; } return deck; }
 function saveIdentity() {
     const profile = window.DiscordProfile?.getProfile();
-    const name = (profile?.name || ui.name.value).trim().slice(0, 24) || "Совёнок";
+    const name = ui.name.value.trim().slice(0, 24) || profile?.name || "Совёнок";
     ui.name.value = name;
-    localStorage.setItem("eulennest-player-name", name);
+    localStorage.setItem(PLAYER_NAME_STORAGE_KEY, name);
     return { name, avatarUrl: profile?.avatarUrl ?? null };
 }
 function isDiscordAvatar(value) {
@@ -306,7 +316,10 @@ function isDiscordAvatar(value) {
     }
 }
 addEventListener("discord-profile-change", (event) => {
-    if (event.detail?.name) ui.name.value = event.detail.name;
+    if (event.detail?.name) {
+        ui.name.value = event.detail.name;
+        localStorage.setItem(PLAYER_NAME_STORAGE_KEY, event.detail.name);
+    }
     if (mp?.roomId) {
         const identity = saveIdentity();
         run(() => mp.updatePlayerProfile(identity.name, identity.avatarUrl));

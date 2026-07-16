@@ -18,6 +18,7 @@
 
     function saveProfile(profile) {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
+        localStorage.setItem("eulennest-player-name", profile.name);
         render();
         dispatchEvent(new CustomEvent("discord-profile-change", { detail: profile }));
         return profile;

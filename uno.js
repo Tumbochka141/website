@@ -97,12 +97,13 @@ function createPlayers(count, humanCount = 1) {
     let humanNumber = 0;
     let botNumber = 0;
     const discordProfile = window.DiscordProfile?.getProfile();
+    const savedPlayerName = localStorage.getItem("eulennest-player-name")?.trim();
 
     return Array.from({ length: count }, (_, index) => {
         const isHuman = index < humanCount;
         if (isHuman) humanNumber++;
-        const name = isHuman && index === 0 && discordProfile?.name
-            ? discordProfile.name
+        const name = isHuman && index === 0 && (savedPlayerName || discordProfile?.name)
+            ? (savedPlayerName || discordProfile.name)
             : isHuman
             ? (humanCount === 1 ? "Ты" : `Игрок ${humanNumber}`)
             : `Совёнок ${++botNumber}`;
