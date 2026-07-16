@@ -35,13 +35,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // Начальные классы для позиций
     let classes = ['pos1', 'pos2', 'pos3', 'pos4'];
 
+    function setPosition(item, position, isActive) {
+        item.classList.remove('pos1', 'pos2', 'pos3', 'pos4', 'active');
+        item.classList.add(position);
+        item.classList.toggle('active', isActive);
+    }
+
     // Применяем начальные классы
     items.forEach((item, index) => {
-        let className = 'gallery-item ' + classes[index];
-        if (index === 0) { // pos1 is first item
-            className += ' active';
-        }
-        item.className = className;
+        setPosition(item, classes[index], index === 0);
     });
 
     function cyclePositions() {
@@ -54,11 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ];
 
         items.forEach((item, index) => {
-            let className = 'gallery-item ' + nextClasses[index];
-            if (nextClasses[index] === 'pos1') {
-                className += ' active';
-            }
-            item.className = className;
+            setPosition(item, nextClasses[index], nextClasses[index] === 'pos1');
         });
 
         classes = nextClasses;

@@ -1,11 +1,14 @@
-<!DOCTYPE html>
-<html lang="en">
+﻿<!DOCTYPE html>
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Eulennest</title>
     <link rel="icon" type="image/png" href="img/gashich.png">
     <link rel="shortcut icon" type="image/png" href="img/gashich.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Unbounded:wght@600;700;800&amp;display=swap" rel="stylesheet">
     <link rel="stylesheet" href="caine.css">
     <script src="generator.js" defer></script>
 </head>
@@ -60,9 +63,9 @@
         </aside>
         <header class="header">
             <nav class="nav">
-                <a href="#">Гнездо</a>
-                <a href="#">Игры</a>
-                <a href="#">Вечер</a>
+                <a href="index.html" aria-current="page">Гнездо</a>
+                <a href="catalog.html">Игры</a>
+                <a href="https://discord.gg/reRVVvXVa9" target="_blank" rel="noopener noreferrer">Вечер</a>
             </nav>
             <div class="actions">
                 <button class="day-night-toggle" type="button" aria-label="Включить ночной режим" aria-pressed="false">
@@ -89,35 +92,35 @@
             <div class="gallery-grid">
                 <a href="catalog.html" class="gallery-item gallery-item--link" aria-label="Открыть каталог игр">
                     <div class="gallery-item-image-wrap">
-                        <img src="img/huli.png" alt="Пейзаж 1" class="gallery-img">
+                        <img src="img/game-edit-large-dollar.png" alt="Игровой стол с настольными и карточными играми" class="gallery-img">
                     </div>
                     <div class="gallery-caption">
-                        <h4>Не можешь чего-то найти?</h4>
-                        <p>Тут не только 3 игры если что</p>
+                        <h4>Не нашли нужную игру?</h4>
+                        <p>Открыть полный каталог</p>
                     </div>
                 </a>
 
-                <div class="gallery-item">
+                <a href="catalog.html#monopoly" class="gallery-item" aria-label="Открыть Монополию в каталоге">
                     <div class="gallery-item-image-wrap">
-                        <img src="img/monopoly.png" alt="Пейзаж 2" class="gallery-img">
+                        <img src="img/monopoly.png" alt="Монополия" class="gallery-img">
                     </div>
                     <div class="gallery-caption">
                         <h4>Монополия</h4>
                         <p>Ну давай, скажи что у тебя крепкая дружба</p>
                     </div>
-                </div>
+                </a>
 
-                <div class="gallery-item">
+                <a href="catalog.html#mafia" class="gallery-item" aria-label="Открыть Мафию в каталоге">
                     <div class="gallery-item-image-wrap">
-                        <img src="img/mafia.png" alt="Пейзаж 3" class="gallery-img">
+                        <img src="img/mafia.png" alt="Мафия" class="gallery-img">
                     </div>
                     <div class="gallery-caption">
                         <h4>Мафия</h4>
                         <p>10 путан из 10</p>
                     </div>
-                </div>
+                </a>
 
-                <div class="gallery-item">
+                <a href="catalog.html#bunker" class="gallery-item" aria-label="Открыть Бункер в каталоге">
                     <div class="gallery-item-image-wrap">
                         <img src="img/bunker.jpg" alt="Бункер" class="gallery-img">
                     </div>
@@ -125,7 +128,7 @@
                         <h4>Бункер</h4>
                         <p>Сборище уродцев</p>
                     </div>
-                </div>
+                </a>
             </div>
         </section>
     </main>

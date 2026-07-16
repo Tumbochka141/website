@@ -3,45 +3,99 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Каталог — Eulennest</title>
+    <title>Каталог игр — Eulennest</title>
     <link rel="icon" type="image/png" href="img/gashich.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Unbounded:wght@600;700;800&amp;display=swap" rel="stylesheet">
     <link rel="stylesheet" href="catalog.css">
 </head>
 <body>
-    <main class="catalog-board" aria-label="Каталог игр">
-        <div class="catalog-grid">
-            <a class="catalog-cell" href="index.html" aria-label="Вернуться на главную"></a>
-            <div class="catalog-cell"></div>
-            <div class="catalog-cell"></div>
-            <div class="catalog-cell"></div>
-            <div class="catalog-cell"></div>
-            <div class="catalog-cell"></div>
-            <div class="catalog-cell"></div>
+    <header class="site-header">
+        <nav class="site-nav" aria-label="Основная навигация">
+            <a href="index.html">Гнездо</a>
+            <a class="is-active" href="catalog.html" aria-current="page">Игры</a>
+            <a href="https://discord.gg/reRVVvXVa9" target="_blank" rel="noopener noreferrer">Вечер</a>
+        </nav>
+    </header>
 
-            <div class="catalog-cell"></div>
-            <div class="catalog-cell"></div>
-            <div class="catalog-cell"></div>
-            <div class="catalog-cell"></div>
-            <div class="catalog-cell"></div>
-            <div class="catalog-cell"></div>
-            <div class="catalog-cell"></div>
+    <main class="catalog-page">
+        <a class="catalog-back" href="index.html">← Вернуться в гнездо</a>
 
-            <div class="catalog-cell"></div>
-            <div class="catalog-cell"></div>
-            <div class="catalog-cell"></div>
-            <div class="catalog-cell"></div>
-            <div class="catalog-cell"></div>
-            <div class="catalog-cell"></div>
-            <div class="catalog-cell"></div>
+        <section class="catalog-panel" aria-labelledby="catalog-title">
+            <div class="catalog-heading">
+                <p class="catalog-eyebrow">Игровая полка</p>
+                <h1 id="catalog-title">Каталог игр</h1>
+                <p>Выбирай игру, собирай компанию и устраивай вечер в гнезде.</p>
+            </div>
 
-            <div class="catalog-cell"></div>
-            <div class="catalog-cell"></div>
-            <div class="catalog-cell"></div>
-            <div class="catalog-cell"></div>
-            <div class="catalog-cell"></div>
-            <div class="catalog-cell"></div>
-            <div class="catalog-cell"></div>
-        </div>
+            <h2 class="section-label">Уже можно играть</h2>
+            <div class="game-grid">
+                <a class="game-card" id="uno" href="uno.html" aria-label="Открыть игру UNO">
+                    <span class="game-card__art">
+                        <img src="img/uno.jpg" alt="UNO">
+                    </span>
+                    <span class="game-card__body">
+                        <strong>UNO</strong>
+                        <span class="game-card__meta"><span>2–10 игроков</span><span>≈ 20 минут</span></span>
+                    </span>
+                </a>
+
+                <a class="game-card" id="bunker" href="#bunker" aria-label="Открыть игру Бункер">
+                    <span class="game-card__art">
+                        <img src="img/bunker.jpg" alt="Бункер">
+                    </span>
+                    <span class="game-card__body">
+                        <strong>Бункер</strong>
+                        <span class="game-card__meta"><span>6–15 игроков</span><span>≈ 60 минут</span></span>
+                    </span>
+                </a>
+
+                <a class="game-card" id="mafia" href="#mafia" aria-label="Открыть игру Мафия">
+                    <span class="game-card__art">
+                        <img src="img/mafia.png" alt="Мафия">
+                    </span>
+                    <span class="game-card__body">
+                        <strong>Мафия</strong>
+                        <span class="game-card__meta"><span>6–12 игроков</span><span>≈ 45 минут</span></span>
+                    </span>
+                </a>
+
+                <a class="game-card" id="monopoly" href="#monopoly" aria-label="Открыть игру Монополия">
+                    <span class="game-card__art">
+                        <img src="img/monopoly.png" alt="Монополия">
+                    </span>
+                    <span class="game-card__body">
+                        <strong>Монополия</strong>
+                        <span class="game-card__meta"><span>2–6 игроков</span><span>≈ 90 минут</span></span>
+                    </span>
+                </a>
+            </div>
+
+            <h2 class="section-label section-label--soon">Скоро в гнезде</h2>
+            <div class="soon-grid">
+                <a class="soon-card" id="soon-board" href="#soon-board">
+                    <span class="soon-card__icon" aria-hidden="true">◆</span>
+                    <strong>Новая настолка</strong>
+                    <span>Готовим место на полке</span>
+                </a>
+                <a class="soon-card" id="uno-online" href="uno-multiplayer.html">
+                    <span class="soon-card__icon" aria-hidden="true">↗</span>
+                    <strong>UNO Online</strong>
+                    <span>Комнаты для друзей</span>
+                </a>
+                <a class="soon-card" id="soon-secret" href="#soon-secret">
+                    <span class="soon-card__icon" aria-hidden="true">?</span>
+                    <strong>Секретный проект</strong>
+                    <span>Пока держим интригу</span>
+                </a>
+                <a class="soon-card soon-card--suggest" href="https://discord.gg/reRVVvXVa9" target="_blank" rel="noopener noreferrer">
+                    <span class="soon-card__icon" aria-hidden="true">＋</span>
+                    <strong>Предложить игру</strong>
+                    <span>Напиши нам в Discord</span>
+                </a>
+            </div>
+        </section>
     </main>
 </body>
 </html>
