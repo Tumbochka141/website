@@ -374,32 +374,6 @@
             opacity: 1;
             transform: translateX(-3px);
         }
-        .discord-profile {
-            position: absolute;
-            right: 18px;
-            display: flex;
-            align-items: center;
-            gap: 7px;
-            max-width: 220px;
-            padding: 5px 7px;
-            border: 1px solid rgba(59, 16, 28, .2);
-            border-radius: 999px;
-            color: var(--wine);
-            background: rgba(255, 255, 255, .48);
-        }
-        .discord-profile__avatar { width: 30px; height: 30px; flex: 0 0 30px; border: 2px solid var(--gold); border-radius: 50%; object-fit: cover; }
-        .discord-profile__name { overflow: hidden; font: 700 .58rem var(--font-display); text-overflow: ellipsis; white-space: nowrap; }
-        .discord-profile__button {
-            padding: 6px 8px;
-            color: var(--wine);
-            border: 0;
-            border-radius: 999px;
-            background: var(--gold-bright);
-            cursor: pointer;
-            font: 700 .5rem var(--font-display);
-            text-transform: uppercase;
-        }
-        .discord-profile__logout { width: 24px; height: 24px; padding: 0; color: var(--cream); background: var(--wine); }
         .game-heading h1 { font-size: clamp(2.2rem, 7vw, 4.6rem); letter-spacing: -.045em; }
         .game-heading { align-items: center; }
         .game-heading > div:first-child { padding-left: clamp(18px, 2.6vw, 38px); }
@@ -558,9 +532,6 @@
             .site-header { width: calc(100% - 28px); margin-top: 12px; }
             .header-back { left: 16px; }
             .header-back span { display: none; }
-            .discord-profile { right: 10px; max-width: 112px; }
-            .discord-profile__name { display: none; }
-            .discord-profile__button { font-size: .44rem; }
             .game-heading { align-items: stretch; }
             .game-heading > div:first-child { padding-left: 0; }
             .setup { grid-template-columns: repeat(2, minmax(0, 1fr)); min-width: 0; }
@@ -581,12 +552,6 @@
             <a class="is-active" href="catalog.html" aria-current="page">Игры</a>
             <a href="https://discord.gg/reRVVvXVa9" target="_blank" rel="noopener noreferrer">Вечер</a>
         </nav>
-        <div class="discord-profile" id="discord-profile" aria-label="Профиль Discord">
-            <img class="discord-profile__avatar" data-discord-avatar alt="Аватар Discord" hidden>
-            <span class="discord-profile__name" data-discord-name>Discord</span>
-            <button class="discord-profile__button" data-discord-login type="button">Привязать</button>
-            <button class="discord-profile__button discord-profile__logout" data-discord-logout type="button" title="Отвязать Discord" aria-label="Отвязать Discord" hidden>×</button>
-        </div>
     </header>
 
     <main class="uno-page">
@@ -691,7 +656,6 @@
     <script src="uno-dialog.js"></script>
     <script src="discord-config.js"></script>
     <script src="discord-profile.js"></script>
-    <script>window.DiscordProfile.mount();</script>
     <script>
         if (document.documentElement.classList.contains("online-mode")) {
             if (location.protocol === "file:") {

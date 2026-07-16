@@ -327,6 +327,54 @@ body:not(.is-night) .sidebar-text-box {
 .header .actions {
     display: flex;
     align-items: center;
+    gap: .8rem;
+}
+
+.discord-profile {
+    max-width: 220px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 7px;
+    color: var(--color-primary);
+    border: 1px solid rgba(59, 16, 28, .2);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .48);
+}
+
+.discord-profile__avatar {
+    width: 32px;
+    height: 32px;
+    flex: 0 0 32px;
+    border: 2px solid var(--color-accent);
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.discord-profile__name {
+    overflow: hidden;
+    font: 700 .58rem var(--font-display);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.discord-profile__button {
+    padding: 7px 9px;
+    color: var(--color-primary);
+    border: 0;
+    border-radius: 999px;
+    background: var(--color-accent);
+    cursor: pointer;
+    font: 700 .5rem var(--font-display);
+    text-transform: uppercase;
+}
+
+.discord-profile__logout {
+    width: 25px;
+    height: 25px;
+    padding: 0;
+    color: #f5efe4;
+    background: var(--color-primary);
 }
 
 .day-night-toggle {

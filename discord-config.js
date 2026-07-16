@@ -1,4 +1,4 @@
 window.EULENNEST_DISCORD = {
-    clientId: "PASTE_DISCORD_CLIENT_ID",
+    clientId: "1527307049665560776",
     callbackFile: "discord-callback.html"
 };

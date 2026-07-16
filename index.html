@@ -68,6 +68,12 @@
                 <a href="https://discord.gg/reRVVvXVa9" target="_blank" rel="noopener noreferrer">Вечер</a>
             </nav>
             <div class="actions">
+                <div class="discord-profile" id="discord-profile" aria-label="Профиль Discord">
+                    <img class="discord-profile__avatar" data-discord-avatar alt="Аватар Discord" hidden>
+                    <span class="discord-profile__name" data-discord-name>Discord</span>
+                    <button class="discord-profile__button" data-discord-login type="button">Привязать</button>
+                    <button class="discord-profile__button discord-profile__logout" data-discord-logout type="button" title="Отвязать Discord" aria-label="Отвязать Discord" hidden>×</button>
+                </div>
                 <button class="day-night-toggle" type="button" aria-label="Включить ночной режим" aria-pressed="false">
                     <span class="day-night-toggle__sky" aria-hidden="true">
                         <span class="day-night-toggle__moon"></span>
@@ -132,5 +138,8 @@
             </div>
         </section>
     </main>
+    <script src="discord-config.js"></script>
+    <script src="discord-profile.js"></script>
+    <script>window.DiscordProfile.mount();</script>
 </body>
 </html>

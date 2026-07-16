@@ -129,7 +129,14 @@
         if (!root) return;
         root.querySelector("[data-discord-login]").addEventListener("click", async () => {
             try { await connect(); }
-            catch (error) { window.gameDialog?.alert(error.message); }
+            catch (error) {
+                if (window.gameDialog) await window.gameDialog.alert(error.message);
+                else {
+                    const name = root.querySelector("[data-discord-name]");
+                    name.textContent = error.message;
+                    setTimeout(render, 3500);
+                }
+            }
         });
         root.querySelector("[data-discord-logout]").addEventListener("click", disconnect);
         render();
