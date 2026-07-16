@@ -141,7 +141,7 @@ async function startGame() {
     for (let round = 0; round < 7; round++) for (const [id] of entries) hands[id].push(deck.pop());
     const firstIndex = deck.findLastIndex((card) => card.type === "number");
     const first = deck.splice(firstIndex, 1)[0];
-    const engine = { deck, discard: [first], hands, order: entries.map(([id]) => id), current: 0, direction: 1, currentColor: first.color, revision: 1, winner: null };
+    const engine = { deck, discard: [first], hands, order: entries.map(([id]) => id), current: 0, direction: 1, currentColor: first.color, revision: 1, winner: null, unoPendingPlayerId: null };
     await saveEngine(engine, `Ход: ${entries[0][1].name}.`);
 }
 
@@ -150,14 +150,27 @@ async function processCommand(command, key) {
         const engine = await mp.getEngine();
         if (!engine || command.revision !== engine.revision || engine.winner) return;
         const playerId = engine.order[engine.current];
-        if (command.from !== playerId && command.type !== "uno") return;
-        let message = "";
-        if (command.type === "play") message = play(engine, command.from, command.data.indexes, command.data.color);
-        else if (command.type === "draw") { drawCards(engine, command.from, 1); next(engine); message = `${playerName(command.from)} берёт карту.`; }
-        else if (command.type === "uno") message = `${playerName(command.from)} кричит: UNO!`;
+        if (command.type === "uno") {
+            if (engine.unoPendingPlayerId !== command.from) return;
+            engine.unoPendingPlayerId = null;
+            await saveEngine(engine, `${playerName(command.from)} кричит: UNO! Штрафа не будет.`);
+            return;
+        }
+        if (command.from !== playerId) return;
+
+        const messages = [];
+        if (engine.unoPendingPlayerId) {
+            const penalizedPlayerId = engine.unoPendingPlayerId;
+            drawCards(engine, penalizedPlayerId, 2);
+            engine.unoPendingPlayerId = null;
+            messages.push(`${playerName(penalizedPlayerId)} забыл крикнуть UNO и берёт две карты.`);
+        }
+
+        if (command.type === "play") messages.push(play(engine, command.from, command.data.indexes, command.data.color));
+        else if (command.type === "draw") { drawCards(engine, command.from, 1); next(engine); messages.push(`${playerName(command.from)} берёт карту.`); }
         else return;
         engine.revision++;
-        await saveEngine(engine, message);
+        await saveEngine(engine, messages.join(" "));
     } finally { await mp.removeCommand(key); }
 }
 
@@ -173,7 +186,8 @@ function play(engine, playerId, indexes, selectedColor) {
     selectedIndexes.sort((a, b) => b - a).forEach((index) => cards.splice(index, 1));
     engine.discard.push(...selectedCards); engine.currentColor = card.color ?? selectedColor;
     if (!engine.currentColor || !COLORS.includes(engine.currentColor)) throw new Error("Нужно выбрать цвет.");
-    if (!cards.length) { engine.winner = playerId; return `${playerName(playerId)} победил!`; }
+    if (!cards.length) { engine.unoPendingPlayerId = null; engine.winner = playerId; return `${playerName(playerId)} победил!`; }
+    engine.unoPendingPlayerId = cards.length === 1 ? playerId : null;
     const count = selectedCards.length;
     if (card.value === "reverse") { if (count % 2) engine.direction *= -1; next(engine, count === 2 ? 1 : (engine.order.length === 2 ? 2 : 1)); }
     else if (card.value === "skip") next(engine, 1 + count);
@@ -195,6 +209,7 @@ async function saveEngine(engine, message) {
     // Realtime Database removes keys whose value is null. After reading the
     // engine back, `winner` can therefore be absent; never send undefined.
     engine.winner ??= null;
+    engine.unoPendingPlayerId ??= null;
     const players = {};
     for (const id of engine.order) {
         const avatarUrl = room?.players?.[id]?.avatarUrl;
@@ -204,7 +219,7 @@ async function saveEngine(engine, message) {
             ...(isDiscordAvatar(avatarUrl) ? { avatarUrl } : {})
         };
     }
-    const state = { phase: engine.winner ? "finished" : "playing", revision: engine.revision, currentPlayerId: engine.order[engine.current], currentColor: engine.currentColor, topCard: engine.discard.at(-1), deckCount: engine.deck.length, direction: engine.direction, winner: engine.winner, players, message };
+    const state = { phase: engine.winner ? "finished" : "playing", revision: engine.revision, currentPlayerId: engine.order[engine.current], currentColor: engine.currentColor, topCard: engine.discard.at(-1), deckCount: engine.deck.length, direction: engine.direction, winner: engine.winner, unoPendingPlayerId: engine.unoPendingPlayerId, players, message };
     await mp.setGame(engine, state, engine.hands);
 }
 
@@ -233,7 +248,7 @@ function renderGame() {
     const activeName = publicState.players?.[publicState.currentPlayerId]?.name ?? "Игрок";
     ui.status.textContent = publicState.winner
         ? `${publicState.players[publicState.winner].name} победил!`
-        : (myTurn ? "Твой ход" : `Ход: ${activeName}`);
+        : (publicState.unoPendingPlayerId === mp.user.uid ? "Крикни UNO!" : (myTurn ? "Твой ход" : `Ход: ${activeName}`));
     ui.top.replaceChildren(cardElement(publicState.topCard));
     ui.deckCount.textContent = publicState.deckCount ?? "?";
     const top = publicState.topCard;
@@ -253,7 +268,7 @@ function renderGame() {
         return el;
     }));
     ui.draw.disabled = !myTurn;
-    ui.uno.disabled = !myTurn || hand.length !== 1;
+    ui.uno.disabled = publicState.unoPendingPlayerId !== mp.user.uid;
     ui.hand.style.pointerEvents = myTurn ? "auto" : "none";
     ui.game.classList.toggle("is-my-turn", myTurn);
 }
