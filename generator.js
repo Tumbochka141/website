@@ -1,22 +1,32 @@
+const owlModule = document.createElement('script');
+owlModule.src = 'modules/sovanaskakalke.js';
+document.head.append(owlModule);
+
 document.addEventListener('DOMContentLoaded', () => {
-    const themeToggle = document.querySelector('.day-night-toggle');
+    const serverLink = document.querySelector('.sidebar-server-link');
+    const discordCounts = document.querySelector('[data-discord-counts]');
+    const discordName = document.querySelector('[data-discord-name]');
 
-    if (themeToggle) {
-        const applyTheme = (isNight) => {
-            document.body.classList.toggle('is-night', isNight);
-            themeToggle.setAttribute('aria-pressed', String(isNight));
-            themeToggle.setAttribute('aria-label', isNight ? 'Включить дневной режим' : 'Включить ночной режим');
-            themeToggle.querySelector('.day-night-toggle__label').textContent = isNight ? 'NIGHT MODE' : 'DAY MODE';
-        };
+    if (serverLink && discordCounts) {
+        const inviteCode = new URL(serverLink.href).pathname.split('/').filter(Boolean).pop();
 
-        const savedTheme = localStorage.getItem('eulennest-theme');
-        applyTheme(savedTheme !== 'day');
+        fetch(`https://discord.com/api/v10/invites/${encodeURIComponent(inviteCode)}?with_counts=true`)
+            .then((response) => {
+                if (!response.ok) throw new Error(`Discord API: ${response.status}`);
+                return response.json();
+            })
+            .then((invite) => {
+                const online = Number(invite.approximate_presence_count).toLocaleString('ru-RU');
+                const members = Number(invite.approximate_member_count).toLocaleString('ru-RU');
 
-        themeToggle.addEventListener('click', () => {
-            const isNight = !document.body.classList.contains('is-night');
-            applyTheme(isNight);
-            localStorage.setItem('eulennest-theme', isNight ? 'night' : 'day');
-        });
+                discordCounts.textContent = `${online} онлайн · ${members} участников`;
+                if (discordName && invite.guild?.name) {
+                    discordName.textContent = invite.guild.name;
+                }
+            })
+            .catch(() => {
+                discordCounts.textContent = 'Данные временно недоступны';
+            });
     }
 
     const items = Array.from(document.querySelectorAll('.gallery-item'));
@@ -44,18 +54,16 @@ document.addEventListener('DOMContentLoaded', () => {
         ];
 
         items.forEach((item, index) => {
-            setTimeout(() => {
-                let className = 'gallery-item ' + nextClasses[index];
-                if (nextClasses[index] === 'pos1') {
-                    className += ' active';
-                }
-                item.className = className;
-            }, index * 150); // стадийная задержка для плавности
+            let className = 'gallery-item ' + nextClasses[index];
+            if (nextClasses[index] === 'pos1') {
+                className += ' active';
+            }
+            item.className = className;
         });
 
         classes = nextClasses;
     }
 
-    // Запуск цикла каждые 2 секунды
-    setInterval(cyclePositions, 2200);
+    // Запуск цикла каждые 4 секунды
+    setInterval(cyclePositions, 4000);
 });

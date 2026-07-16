@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -11,12 +11,54 @@
 </head>
 <body class="is-night">
     <main class="main">
-        <aside class="main__sidebar" aria-hidden="true"></aside>
+        <aside class="main__sidebar" aria-label="Дополнительная информация">
+            <div class="sidebar-text-box">
+                <span class="sidebar-corner sidebar-corner--left" aria-hidden="true"></span>
+                <span class="sidebar-corner sidebar-corner--right" aria-hidden="true"></span>
+
+                <div class="sidebar-kicker">
+                    <span class="sidebar-owl"><img src="img/gashich.png" alt=""></span>
+                    <span>Eulennest</span>
+                </div>
+
+                <div class="sidebar-divider" aria-hidden="true"><span>◆</span></div>
+
+                <div class="sidebar-about">
+                    <p class="sidebar-label">О сайте</p>
+                    <p>Йо! Этот сайт, по сути, создан как продолжение одного Discord-сервера. Спросите: «А зачем?» Ответ прост: по приколу.
+                        В основном здесь пока будут игры, но в будущем, подобно тому как маленькие существа эволюционировали в людей,
+                        этот сайт тоже во что-то вырастет. А пока — добро пожаловать!
+                    </p>
+                </div>
+
+                <div class="sidebar-divider" aria-hidden="true"><span>◆</span></div>
+
+                <p class="sidebar-label">Новости сервера</p>
+
+                <div class="sidebar-divider" aria-hidden="true"><span>◆</span></div>
+
+                <div class="sidebar-discord-section">
+                    <p class="sidebar-label">Discord</p>
+                    <div class="discord-card">
+                        <div class="discord-card__top">
+                            <span class="discord-card__icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24"><path d="M4 5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-6l-4.5 3.6V16H6a2 2 0 0 1-2-2V5z"/></svg>
+                            </span>
+                            <span>
+                                <strong data-discord-name>Eulennest</strong>
+                                <small><i></i><span data-discord-counts>Загрузка данных…</span></small>
+                            </span>
+                        </div>
+                        <div class="discord-avatars" aria-hidden="true">
+                            <span>Й</span><span>А</span><span>К</span><span>С</span><span>+20</span>
+                        </div>
+                    </div>
+                </div>
+
+                <a class="sidebar-server-link" href="https://discord.gg/reRVVvXVa9" target="_blank" rel="noopener noreferrer">Перейти на сервер</a>
+            </div>
+        </aside>
         <header class="header">
-            <a href="#" class="logo" aria-label="Eulennest">
-                <img src="img/gashich.png" alt="">
-                <span>Eulennest</span>
-            </a>
             <nav class="nav">
                 <a href="#">Гнездо</a>
                 <a href="#">Игры</a>
