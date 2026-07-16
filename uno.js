@@ -44,7 +44,9 @@ const newGameButton = document.querySelector("#new-game");
 const playerHandElement = document.querySelector("#player-hand");
 const drawPileButton = document.querySelector("#draw-pile");
 const deckCountElement = document.querySelector("#deck-count");
-const statusElement = document.querySelector("#status");
+const statusElement = document.querySelector("#status-text");
+const directionIndicatorElement = document.querySelector("#direction-indicator");
+const currentColorElement = document.querySelector("#current-color");
 const playerCountElement = document.querySelector("#player-count");
 const humanCountElement = document.querySelector("#human-count");
 const setupSummaryElement = document.querySelector("#setup-summary");
@@ -55,6 +57,7 @@ const revealHandButton = document.querySelector("#reveal-hand");
 const colorDialog = document.querySelector("#color-dialog");
 const colorChoiceButtons = [...document.querySelectorAll(".color-choice")];
 const gameBoardElement = document.querySelector(".game-board");
+let renderedDirection = null;
 
 function createDeck() {
     const deck = [];
@@ -93,14 +96,23 @@ function shuffleDeck(deck) {
 function createPlayers(count, humanCount = 1) {
     let humanNumber = 0;
     let botNumber = 0;
+    const discordProfile = window.DiscordProfile?.getProfile();
 
     return Array.from({ length: count }, (_, index) => {
         const isHuman = index < humanCount;
-        const name = isHuman
-            ? (humanCount === 1 ? "Ты" : `Игрок ${++humanNumber}`)
+        if (isHuman) humanNumber++;
+        const name = isHuman && index === 0 && discordProfile?.name
+            ? discordProfile.name
+            : isHuman
+            ? (humanCount === 1 ? "Ты" : `Игрок ${humanNumber}`)
             : `Совёнок ${++botNumber}`;
 
-        return { name, hand: [], isHuman };
+        return {
+            name,
+            hand: [],
+            isHuman,
+            avatarUrl: isHuman && index === 0 ? discordProfile?.avatarUrl ?? null : null
+        };
     });
 }
 
@@ -482,36 +494,36 @@ function renderHand() {
             drawn: uno.hasDrawn && index === uno.drawnCardIndex
         });
 
-        cardButton.addEventListener("click", () => {
+        cardButton.addEventListener("click", async () => {
             if (uno.phase === "finished") {
-                alert(`GAMEOVER!!!. Победил ${uno.players[uno.winner].name}`);
+                await window.gameDialog.alert(`GAMEOVER!!!. Победил ${uno.players[uno.winner].name}`);
                 return;
             }
             if (uno.phase !== "playing") {
-                alert("Притормози, спешка пока никчему");
+                await window.gameDialog.alert("Притормози, спешка пока никчему");
                 return;
             }
             if (uno.currentPlayer !== playerIndex) {
-                alert(`Руки на стол, сейчас ходит ${uno.players[uno.currentPlayer].name}.`);
+                await window.gameDialog.alert(`Руки на стол, сейчас ходит ${uno.players[uno.currentPlayer].name}.`);
                 return;
             }
             if (uno.hasDrawn && index !== uno.drawnCardIndex) {
-                alert("После взятия можно сыграть только что вытянутую карту.");
+                await window.gameDialog.alert("После взятия можно сыграть только что вытянутую карту.");
                 return;
             }
             if (!canPlayCard(card)) {
-                alert("Бери другую карту)))");
+                await window.gameDialog.alert("Бери другую карту)))");
                 return;
             }
 
             const duplicateIndex = findDuplicateIndex(player.hand, card, index);
             const playDuplicate = !uno.hasDrawn
                 && duplicateIndex >= 0
-                && confirm("У тебя есть такая же карта. Кинуть обе за один ход?");
+                && await window.gameDialog.confirm("У тебя есть такая же карта. Кинуть обе за один ход?");
             const played = playCard(playerIndex, index, playDuplicate);
 
             if (!played) {
-                alert("Бип-буп, давай по новой.");
+                await window.gameDialog.alert("Бип-буп, давай по новой.");
                 return;
             }
 
@@ -543,6 +555,13 @@ function renderOpponents() {
         const count = document.createElement("span");
         count.textContent = `${player.hand.length} ${getCardWord(player.hand.length)}`;
 
+        if (player.avatarUrl) {
+            const avatar = document.createElement("img");
+            avatar.className = "opponent__avatar";
+            avatar.src = player.avatarUrl;
+            avatar.alt = "";
+            opponent.append(avatar);
+        }
         opponent.append(name, count);
         opponentsElement.append(opponent);
     }
@@ -558,7 +577,7 @@ function getCardWord(amount) {
 
 function renderStatus() {
     if (uno.phase === "setup") {
-        statusElement.textContent = "Нажми «Новая партия», чтобы начать.";
+        statusElement.textContent = "Начать партию";
         return;
     }
     if (uno.phase === "finished") {
@@ -567,13 +586,42 @@ function renderStatus() {
     }
 
     if (uno.handoverPending) {
-        statusElement.textContent = `Ход: ${uno.players[uno.currentPlayer].name}. Карты скрыты до передачи экрана.`;
+        statusElement.textContent = `Передай ход: ${uno.players[uno.currentPlayer].name}`;
         return;
     }
 
     const player = uno.players[uno.currentPlayer];
-    const turnText = uno.phase === "choosing-color" ? "Выбор цвета" : `Ход: ${player.name}`;
-    statusElement.textContent = `${turnText}. Цвет: ${uno.currentColor}. ${uno.message}`;
+    if (uno.phase === "choosing-color") statusElement.textContent = "Выбери цвет";
+    else if (uno.unoVulnerable !== null && uno.players[uno.unoVulnerable]?.isHuman) statusElement.textContent = "Крикни UNO!";
+    else if (uno.hasDrawn && player?.isHuman) statusElement.textContent = "Сыграй карту или закончи ход";
+    else statusElement.textContent = player?.isHuman ? "Твой ход" : `Ход: ${player.name}`;
+}
+
+function renderTableIndicators() {
+    const colorClass = COLOR_CLASS_NAMES[uno.currentColor];
+    gameBoardElement.classList.remove("has-active-color", "color-red", "color-yellow", "color-green", "color-blue");
+    if (colorClass) gameBoardElement.classList.add("has-active-color", `color-${colorClass}`);
+
+    const hasGame = uno.phase !== "setup";
+    directionIndicatorElement.hidden = !hasGame;
+    currentColorElement.hidden = !colorClass;
+    currentColorElement.setAttribute("aria-label", colorClass ? `Текущий цвет: ${uno.currentColor}` : "Текущий цвет не выбран");
+
+    if (!hasGame) {
+        renderedDirection = null;
+        return;
+    }
+
+    directionIndicatorElement.textContent = uno.direction === 1 ? "↻" : "↺";
+    directionIndicatorElement.setAttribute("aria-label", uno.direction === 1
+        ? "Направление по часовой стрелке"
+        : "Направление против часовой стрелки");
+    if (renderedDirection !== null && renderedDirection !== uno.direction) {
+        directionIndicatorElement.classList.remove("is-changing");
+        void directionIndicatorElement.offsetWidth;
+        directionIndicatorElement.classList.add("is-changing");
+    }
+    renderedDirection = uno.direction;
 }
 
 function renderControls() {
@@ -598,11 +646,13 @@ function scheduleBotTurn() {
 }
 
 function renderGame() {
+    renderTableIndicators();
     renderDiscard();
     renderHand();
     renderOpponents();
     renderStatus();
     renderControls();
+    saveLocalGame();
     scheduleBotTurn();
 }
 
@@ -630,6 +680,14 @@ for (const button of colorChoiceButtons) {
 
 colorDialog.addEventListener("cancel", (event) => {
     if (uno.phase === "choosing-color") event.preventDefault();
+});
+
+addEventListener("discord-profile-change", (event) => {
+    const player = uno.players[0];
+    if (!player?.isHuman) return;
+    player.name = event.detail?.name || (uno.humanCount === 1 ? "Ты" : "Игрок 1");
+    player.avatarUrl = event.detail?.avatarUrl ?? null;
+    renderGame();
 });
 
 newGameButton.addEventListener("click", startGame);
@@ -669,8 +727,53 @@ function getBotWord(amount) {
     if (amount >= 2 && amount <= 4) return "бота";
     return "ботов";
 }
+function saveLocalGame() {
+    if (uno.phase === "setup") return;
+    const state = {
+        phase: uno.phase,
+        players: uno.players,
+        deck: uno.deck,
+        discard: uno.discard,
+        currentPlayer: uno.currentPlayer,
+        currentColor: uno.currentColor,
+        direction: uno.direction,
+        winner: uno.winner,
+        hasDrawn: uno.hasDrawn,
+        drawnCardIndex: uno.drawnCardIndex,
+        pendingWildCard: uno.pendingWildCard,
+        unoVulnerable: uno.unoVulnerable,
+        humanCount: uno.humanCount,
+        viewerPlayer: uno.viewerPlayer,
+        handoverPending: uno.handoverPending,
+        message: uno.message
+    };
+    localStorage.setItem("eulennest-uno-game", JSON.stringify(state));
+}
+
+function loadLocalGame() {
+    const saved = localStorage.getItem("eulennest-uno-game");
+    if (!saved) return false;
+
+    try {
+        const state = JSON.parse(saved);
+        if (!Array.isArray(state.players) || !Array.isArray(state.deck) || !Array.isArray(state.discard)) throw new Error("Некорректное сохранение");
+        Object.assign(uno, state);
+        uno.botTimer = null;
+        playerCountElement.value = String(uno.players.length);
+        syncLobbyControls();
+        humanCountElement.value = String(uno.humanCount);
+        syncLobbyControls();
+        renderGame();
+        if (uno.phase === "choosing-color") colorDialog.showModal();
+        return true;
+    } catch (error) {
+        console.warn("Сохранение UNO повреждено и будет удалено.", error);
+        localStorage.removeItem("eulennest-uno-game");
+        return false;
+    }
+}
 
 playerCountElement.addEventListener("change", syncLobbyControls);
 humanCountElement.addEventListener("change", syncLobbyControls);
 syncLobbyControls();
-renderGame();
+if (!loadLocalGame()) renderGame();

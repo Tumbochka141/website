@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discord — Eulennest</title>
+</head>
+<body>
+    <p>Возвращаемся в Eulennest…</p>
+    <script>
+        if (window.opener && location.hash) {
+            window.opener.postMessage({ type: "eulennest-discord-oauth", hash: location.hash }, location.origin);
+            history.replaceState(null, "", location.pathname);
+            window.close();
+        } else {
+            document.body.textContent = "Окно можно закрыть и вернуться в Eulennest.";
+        }
+    </script>
+</body>
+</html>

@@ -4,14 +4,16 @@ import { firebaseConfig, isFirebaseConfigured } from "./firebase-config.js";
 const COLORS = ["Красный", "Желтый", "Зеленый", "Синий"];
 const CLASSES = { Красный: "red", Желтый: "yellow", Зеленый: "green", Синий: "blue" };
 const LABELS = { skip: "⊘", reverse: "↻", "+2": "+2", wild: "★", "+4": "+4" };
+const ROOM_STORAGE_KEY = "eulennest-uno-room";
 const $ = (selector) => document.querySelector(selector);
 const ui = {
     entry: $("#online-entry"), room: $("#online-room"), game: $(".game-board"),
     name: $("#online-name"), codeInput: $("#online-code-input"), code: $("#online-code"),
     create: $("#online-create"), join: $("#online-join"), leave: $("#online-leave"), start: $("#online-start"),
-    players: $("#online-players"), opponents: $("#opponents"), status: $("#status"), hand: $("#player-hand"),
+    players: $("#online-players"), opponents: $("#opponents"), status: $("#status-text"), hand: $("#player-hand"),
     top: $("#discard-pile"), draw: $("#draw-pile"), deckCount: $("#deck-count"), uno: $("#uno-call"),
-    pass: $("#pass-turn"), reveal: $("#reveal-hand"), error: $("#online-error"), colorDialog: $("#color-dialog")
+    pass: $("#pass-turn"), reveal: $("#reveal-hand"), error: $("#online-error"), colorDialog: $("#color-dialog"),
+    direction: $("#direction-indicator"), currentColor: $("#current-color")
 };
 
 let mp = null;
@@ -20,6 +22,7 @@ let publicState = null;
 let hand = [];
 let commandQueue = Promise.resolve();
 let gameConnected = false;
+let renderedDirection = null;
 
 boot();
 
@@ -28,6 +31,8 @@ async function boot() {
     if (savedName) ui.name.value = savedName;
     ui.pass.hidden = true;
     ui.reveal.hidden = true;
+    ui.direction.hidden = true;
+    ui.currentColor.hidden = true;
     ui.status.textContent = "Создай комнату или войди по коду, чтобы начать.";
     if (!isFirebaseConfigured) {
         ui.error.textContent = "Для игры по сети сначала заполни firebase-config.js.";
@@ -38,19 +43,40 @@ async function boot() {
         mp = new Multiplayer(firebaseConfig);
         await mp.connect();
         ui.status.textContent = "Сеть готова. Создай комнату или войди по коду.";
+        const savedRoom = localStorage.getItem(ROOM_STORAGE_KEY);
+        if (savedRoom) {
+            try {
+                const identity = saveIdentity();
+                await enterRoom(await mp.joinRoom(savedRoom, identity.name, identity.avatarUrl));
+            } catch (error) {
+                localStorage.removeItem(ROOM_STORAGE_KEY);
+                showError(error);
+            }
+        }
     } catch (error) { showError(error); }
 }
 
 ui.codeInput.addEventListener("input", () => ui.codeInput.value = Multiplayer.normalizeRoomId(ui.codeInput.value));
-ui.create.addEventListener("click", async () => run(async () => enterRoom(await mp.createRoom(saveName(), 4))));
-ui.join.addEventListener("click", async () => run(async () => enterRoom(await mp.joinRoom(ui.codeInput.value, saveName()))));
-ui.leave.addEventListener("click", async () => { await mp.leave(); location.reload(); });
+ui.create.addEventListener("click", async () => run(async () => {
+    const identity = saveIdentity();
+    return enterRoom(await mp.createRoom(identity.name, 4, identity.avatarUrl));
+}));
+ui.join.addEventListener("click", async () => run(async () => {
+    const identity = saveIdentity();
+    return enterRoom(await mp.joinRoom(ui.codeInput.value, identity.name, identity.avatarUrl));
+}));
+ui.leave.addEventListener("click", async () => {
+    localStorage.removeItem(ROOM_STORAGE_KEY);
+    await mp.leave();
+    location.reload();
+});
 ui.code.addEventListener("click", async () => { await navigator.clipboard.writeText(mp.roomId); ui.code.textContent = "СКОПИРОВАНО"; setTimeout(() => ui.code.textContent = mp.roomId, 900); });
 ui.start.addEventListener("click", () => run(startGame));
 ui.draw.addEventListener("click", () => send("draw"));
 ui.uno.addEventListener("click", () => send("uno"));
 
 async function enterRoom(code) {
+    localStorage.setItem(ROOM_STORAGE_KEY, code);
     ui.entry.hidden = true;
     ui.room.hidden = false;
     ui.code.textContent = code;
@@ -67,7 +93,14 @@ function renderLobby() {
     for (const [id, player] of Object.entries(room.players ?? {})) {
         const item = document.createElement("div");
         item.className = `online-player ${id === room.meta.hostId ? "is-host" : ""}`;
-        item.textContent = player.name;
+        if (isDiscordAvatar(player.avatarUrl)) {
+            const avatar = document.createElement("img");
+            avatar.className = "online-player__avatar";
+            avatar.src = player.avatarUrl;
+            avatar.alt = "";
+            item.append(avatar);
+        }
+        item.append(document.createTextNode(player.name));
         ui.players.append(item);
     }
     const isHost = room.meta.hostId === mp.user.uid;
@@ -150,7 +183,14 @@ function next(engine, steps = 1) { engine.current = nextIndex(engine, steps); }
 
 async function saveEngine(engine, message) {
     const players = {};
-    for (const id of engine.order) players[id] = { name: playerName(id), cardCount: engine.hands[id].length };
+    for (const id of engine.order) {
+        const avatarUrl = room?.players?.[id]?.avatarUrl;
+        players[id] = {
+            name: playerName(id),
+            cardCount: engine.hands[id].length,
+            ...(isDiscordAvatar(avatarUrl) ? { avatarUrl } : {})
+        };
+    }
     const state = { phase: engine.winner ? "finished" : "playing", revision: engine.revision, currentPlayerId: engine.order[engine.current], currentColor: engine.currentColor, topCard: engine.discard.at(-1), deckCount: engine.deck.length, direction: engine.direction, winner: engine.winner, players, message };
     await mp.setGame(engine, state, engine.hands);
 }
@@ -158,6 +198,7 @@ async function saveEngine(engine, message) {
 function renderGame() {
     if (!publicState) return;
     const myTurn = publicState.currentPlayerId === mp.user.uid && !publicState.winner;
+    renderTableIndicators(publicState.currentColor, publicState.direction);
     ui.opponents.replaceChildren();
     for (const [id, player] of Object.entries(publicState.players ?? {})) if (id !== mp.user.uid) {
         const item = document.createElement("div");
@@ -166,10 +207,20 @@ function renderGame() {
         const count = document.createElement("span");
         name.textContent = player.name;
         count.textContent = `${player.cardCount} карт`;
+        if (isDiscordAvatar(player.avatarUrl)) {
+            const avatar = document.createElement("img");
+            avatar.className = "opponent__avatar";
+            avatar.src = player.avatarUrl;
+            avatar.alt = "";
+            item.append(avatar);
+        }
         item.append(name, count);
         ui.opponents.append(item);
     }
-    ui.status.textContent = publicState.winner ? `${publicState.players[publicState.winner].name} победил!` : `${publicState.message} Цвет: ${publicState.currentColor}.`;
+    const activeName = publicState.players?.[publicState.currentPlayerId]?.name ?? "Игрок";
+    ui.status.textContent = publicState.winner
+        ? `${publicState.players[publicState.winner].name} победил!`
+        : (myTurn ? "Твой ход" : `Ход: ${activeName}`);
     ui.top.replaceChildren(cardElement(publicState.topCard));
     ui.deckCount.textContent = publicState.deckCount ?? "?";
     const top = publicState.topCard;
@@ -181,7 +232,9 @@ function renderGame() {
             let color = card.color;
             if (card.type === "wild") color = await chooseColor();
             const duplicateIndex = card.color ? hand.findIndex((candidate, otherIndex) => otherIndex !== index && candidate.color === card.color && candidate.value === card.value) : -1;
-            const indexes = duplicateIndex >= 0 && confirm("У тебя есть такая же карта. Кинуть обе за один ход?") ? [index, duplicateIndex] : [index];
+            const playDuplicate = duplicateIndex >= 0
+                && await window.gameDialog.confirm("У тебя есть такая же карта. Кинуть обе за один ход?");
+            const indexes = playDuplicate ? [index, duplicateIndex] : [index];
             send("play", { indexes, color });
         };
         return el;
@@ -190,6 +243,25 @@ function renderGame() {
     ui.uno.disabled = !myTurn || hand.length !== 1;
     ui.hand.style.pointerEvents = myTurn ? "auto" : "none";
     ui.game.classList.toggle("is-my-turn", myTurn);
+}
+
+function renderTableIndicators(color, direction) {
+    const colorClass = CLASSES[color];
+    ui.game.classList.remove("has-active-color", "color-red", "color-yellow", "color-green", "color-blue");
+    if (colorClass) ui.game.classList.add("has-active-color", `color-${colorClass}`);
+    ui.currentColor.hidden = !colorClass;
+    ui.currentColor.setAttribute("aria-label", colorClass ? `Текущий цвет: ${color}` : "Текущий цвет не выбран");
+    ui.direction.hidden = false;
+    ui.direction.textContent = direction === 1 ? "↻" : "↺";
+    ui.direction.setAttribute("aria-label", direction === 1
+        ? "Направление по часовой стрелке"
+        : "Направление против часовой стрелки");
+    if (renderedDirection !== null && renderedDirection !== direction) {
+        ui.direction.classList.remove("is-changing");
+        void ui.direction.offsetWidth;
+        ui.direction.classList.add("is-changing");
+    }
+    renderedDirection = direction;
 }
 
 function cardElement(card, button = false, playable = false) {
@@ -218,7 +290,28 @@ function chooseColor() {
 
 function createDeck() { const deck = []; for (const color of COLORS) { deck.push({ color, value: 0, type: "number" }); for (let n = 1; n <= 9; n++) deck.push({ color, value: n, type: "number" }, { color, value: n, type: "number" }); for (const value of ["skip", "reverse", "+2"]) deck.push({ color, value, type: "action" }, { color, value, type: "action" }); } for (let i = 0; i < 4; i++) deck.push({ color: null, value: "wild", type: "wild" }, { color: null, value: "+4", type: "wild" }); return deck; }
 function shuffle(deck) { for (let i = deck.length - 1; i; i--) { const j = Math.floor(Math.random() * (i + 1)); [deck[i], deck[j]] = [deck[j], deck[i]]; } return deck; }
-function saveName() { const value = ui.name.value.trim().slice(0, 24) || "Совёнок"; localStorage.setItem("eulennest-player-name", value); return value; }
+function saveIdentity() {
+    const profile = window.DiscordProfile?.getProfile();
+    const name = (profile?.name || ui.name.value).trim().slice(0, 24) || "Совёнок";
+    ui.name.value = name;
+    localStorage.setItem("eulennest-player-name", name);
+    return { name, avatarUrl: profile?.avatarUrl ?? null };
+}
+function isDiscordAvatar(value) {
+    try {
+        const url = new URL(value);
+        return url.protocol === "https:" && url.hostname === "cdn.discordapp.com";
+    } catch {
+        return false;
+    }
+}
+addEventListener("discord-profile-change", (event) => {
+    if (event.detail?.name) ui.name.value = event.detail.name;
+    if (mp?.roomId) {
+        const identity = saveIdentity();
+        run(() => mp.updatePlayerProfile(identity.name, identity.avatarUrl));
+    }
+});
 async function run(task) { ui.error.textContent = ""; try { return await task(); } catch (error) { showError(error); } }
 function showError(error) { console.error(error); ui.error.textContent = friendlyError(error); }
 function friendlyError(error) { if (error?.code === "auth/operation-not-allowed") return "В Firebase нужно включить анонимную авторизацию."; if (error?.code === "PERMISSION_DENIED") return "Firebase отклонил запрос: проверь правила базы."; return error?.message ?? "Что-то пошло не так."; }

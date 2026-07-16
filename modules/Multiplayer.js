@@ -19,6 +19,7 @@ export class Multiplayer {
     }
 
     async connect() {
+        await this.auth.authStateReady();
         if (this.auth.currentUser) {
             this.user = this.auth.currentUser;
             return this.user;
@@ -38,7 +39,7 @@ export class Multiplayer {
         return [...bytes].map((byte) => ROOM_ALPHABET[byte % ROOM_ALPHABET.length]).join("");
     }
 
-    async createRoom(playerName, maxPlayers = 4) {
+    async createRoom(playerName, maxPlayers = 4, avatarUrl = null) {
         await this.connect();
 
         for (let attempt = 0; attempt < 8; attempt++) {
@@ -55,7 +56,7 @@ export class Multiplayer {
             }, { applyLocally: false });
 
             if (result.committed) {
-                await this.joinRoom(roomId, playerName);
+                await this.joinRoom(roomId, playerName, avatarUrl);
                 return roomId;
             }
         }
@@ -63,7 +64,7 @@ export class Multiplayer {
         throw new Error("Не получилось подобрать свободный код комнаты.");
     }
 
-    async joinRoom(roomId, playerName) {
+    async joinRoom(roomId, playerName, avatarUrl = null) {
         await this.connect();
         const normalizedRoomId = Multiplayer.normalizeRoomId(roomId);
         if (normalizedRoomId.length !== 6) throw new Error("Код комнаты должен содержать 6 символов.");
@@ -71,26 +72,29 @@ export class Multiplayer {
         const metaSnapshot = await get(ref(this.db, `rooms/${normalizedRoomId}/meta`));
         const meta = metaSnapshot.val();
         if (!meta) throw new Error("Комната не найдена.");
-        if (meta.status !== "lobby") throw new Error("Партия в этой комнате уже началась.");
 
         const playersSnapshot = await get(ref(this.db, `rooms/${normalizedRoomId}/players`));
         const players = playersSnapshot.val() ?? {};
-        if (!players[this.user.uid] && Object.keys(players).length >= meta.maxPlayers) {
+        const existingPlayer = players[this.user.uid];
+        if (meta.status !== "lobby" && !existingPlayer) {
+            throw new Error("Партия в этой комнате уже началась.");
+        }
+        if (!existingPlayer && Object.keys(players).length >= meta.maxPlayers) {
             throw new Error("В комнате уже нет свободных мест.");
         }
 
         const playerRef = ref(this.db, `rooms/${normalizedRoomId}/players/${this.user.uid}`);
-        const result = await runTransaction(playerRef, (current) => current ?? {
-            name: sanitizeName(playerName),
-            joinedAt: Date.now(),
-            online: true
-        }, { applyLocally: false });
+        const safeAvatarUrl = sanitizeAvatarUrl(avatarUrl);
+        const result = await runTransaction(playerRef, (current) => current
+            ? { ...current, name: sanitizeName(playerName), ...(safeAvatarUrl ? { avatarUrl: safeAvatarUrl } : {}), online: true }
+            : { name: sanitizeName(playerName), ...(safeAvatarUrl ? { avatarUrl: safeAvatarUrl } : {}), joinedAt: Date.now(), online: true },
+            { applyLocally: false });
 
         if (!result.committed) throw new Error("Не получилось войти в комнату.");
 
         this.roomId = normalizedRoomId;
         this.playerRef = playerRef;
-        await onDisconnect(playerRef).remove();
+        await onDisconnect(playerRef).update({ online: false });
         return normalizedRoomId;
     }
 
@@ -127,6 +131,15 @@ export class Multiplayer {
         await set(commandRef, { type, data, revision, from: this.user.uid, createdAt: serverTimestamp() });
     }
 
+    async updatePlayerProfile(playerName, avatarUrl = null) {
+        this.requireRoom();
+        const safeAvatarUrl = sanitizeAvatarUrl(avatarUrl);
+        await update(this.playerRef, {
+            name: sanitizeName(playerName),
+            avatarUrl: safeAvatarUrl
+        });
+    }
+
     async removeCommand(commandId) {
         await remove(ref(this.db, `rooms/${this.roomId}/commands/${commandId}`));
     }
@@ -156,7 +169,10 @@ export class Multiplayer {
 
     async leave() {
         this.clearListeners();
-        if (this.playerRef) await remove(this.playerRef);
+        if (this.playerRef) {
+            await onDisconnect(this.playerRef).cancel();
+            await remove(this.playerRef);
+        }
         this.roomId = null;
         this.playerRef = null;
     }
@@ -178,4 +194,16 @@ export class Multiplayer {
 function sanitizeName(value) {
     const name = String(value ?? "").trim().replace(/\s+/g, " ").slice(0, 24);
     return name || "Безымянная сова";
+}
+
+function sanitizeAvatarUrl(value) {
+    if (!value) return null;
+    try {
+        const url = new URL(value);
+        return url.protocol === "https:" && url.hostname === "cdn.discordapp.com" && url.href.length <= 300
+            ? url.href
+            : null;
+    } catch {
+        return null;
+    }
 }

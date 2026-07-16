@@ -125,6 +125,8 @@
         .control-button:disabled { cursor: not-allowed; opacity: .4; }
 
         .game-board {
+            --active-color: var(--gold);
+            --active-glow: rgba(214, 183, 81, .15);
             position: relative;
             min-height: 650px;
             overflow: hidden;
@@ -135,7 +137,17 @@
                 linear-gradient(rgba(11, 41, 66, .55), rgba(7, 28, 46, .72)),
                 repeating-linear-gradient(35deg, transparent 0 22px, rgba(255, 255, 255, .018) 23px 24px);
             box-shadow: 0 22px 55px rgba(0, 0, 0, .3), inset 0 0 55px rgba(0, 0, 0, .2);
+            transition: border-color .35s ease, box-shadow .35s ease;
         }
+
+        .game-board.has-active-color {
+            border-color: var(--active-color);
+            box-shadow: 0 0 30px var(--active-glow), 0 22px 55px rgba(0, 0, 0, .3), inset 0 0 60px var(--active-glow);
+        }
+        .game-board.color-red { --active-color: var(--red); --active-glow: rgba(216, 58, 52, .25); }
+        .game-board.color-yellow { --active-color: var(--yellow); --active-glow: rgba(233, 184, 47, .24); }
+        .game-board.color-green { --active-color: var(--green); --active-glow: rgba(60, 150, 82, .24); }
+        .game-board.color-blue { --active-color: var(--blue); --active-glow: rgba(52, 120, 185, .27); }
 
         .opponents {
             min-height: 98px;
@@ -211,10 +223,35 @@
             border-radius: 999px;
             color: var(--cream);
             background: rgba(7, 28, 46, .88);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 11px;
             text-align: center;
         }
 
-        .current-color { display: inline-block; width: 12px; height: 12px; margin-left: 6px; border: 2px solid white; border-radius: 50%; vertical-align: -1px; }
+        .direction-indicator {
+            width: 24px;
+            flex: 0 0 24px;
+            color: var(--active-color);
+            font-size: 1.35rem;
+            font-weight: 800;
+            line-height: 1;
+            text-shadow: 0 0 12px var(--active-glow);
+        }
+        .direction-indicator.is-changing { animation: direction-change .55s ease; }
+        @keyframes direction-change { 50% { transform: scale(1.55) rotate(180deg); } }
+
+        .status-text { min-width: 0; }
+        .current-color {
+            width: 15px;
+            height: 15px;
+            flex: 0 0 15px;
+            border: 2px solid rgba(255, 255, 255, .9);
+            border-radius: 50%;
+            background: var(--active-color);
+            box-shadow: 0 0 12px var(--active-color);
+        }
 
         .player-zone { border-top: 1px solid rgba(214, 183, 81, .2); padding-top: 14px; }
         .player-controls { display: flex; justify-content: center; gap: 10px; margin-bottom: 14px; }
@@ -229,6 +266,42 @@
         .color-options { display: grid; grid-template-columns: repeat(4, 58px); gap: 10px; }
         .color-choice { width: 58px; height: 58px; border: 4px solid var(--cream); border-radius: 50%; cursor: pointer; }
         .color-choice:hover, .color-choice:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+
+        .game-alert {
+            width: min(430px, calc(100% - 28px));
+            padding: 0;
+            overflow: hidden;
+            color: var(--cream);
+            border: 1px solid rgba(255, 232, 120, .72);
+            border-radius: 18px;
+            background:
+                linear-gradient(145deg, rgba(76, 18, 36, .97), rgba(30, 9, 20, .98));
+            box-shadow: 0 24px 70px rgba(0, 0, 0, .62), inset 0 0 32px rgba(255, 232, 120, .04);
+        }
+        .game-alert::backdrop { background: rgba(2, 13, 23, .76); backdrop-filter: blur(5px); }
+        .game-alert__mark {
+            width: 46px;
+            height: 46px;
+            display: grid;
+            place-items: center;
+            margin: 25px auto 12px;
+            color: var(--wine);
+            border-radius: 50%;
+            background: var(--gold-bright);
+            box-shadow: 0 0 24px rgba(255, 232, 120, .24);
+            font: 800 1.15rem var(--font-display);
+        }
+        .game-alert__message { margin: 0; padding: 0 26px 24px; color: var(--cream); text-align: center; font-weight: 700; line-height: 1.55; }
+        .game-alert__actions {
+            display: flex;
+            justify-content: center;
+            gap: 9px;
+            padding: 15px;
+            border-top: 1px solid rgba(255, 232, 120, .18);
+            background: rgba(7, 28, 46, .48);
+        }
+        .game-alert[open] { animation: alert-in .2s ease-out; }
+        @keyframes alert-in { from { opacity: 0; transform: translateY(12px) scale(.97); } }
 
         @media (max-width: 720px) {
             .game-heading { align-items: stretch; flex-direction: column; }
@@ -301,6 +374,32 @@
             opacity: 1;
             transform: translateX(-3px);
         }
+        .discord-profile {
+            position: absolute;
+            right: 18px;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            max-width: 220px;
+            padding: 5px 7px;
+            border: 1px solid rgba(59, 16, 28, .2);
+            border-radius: 999px;
+            color: var(--wine);
+            background: rgba(255, 255, 255, .48);
+        }
+        .discord-profile__avatar { width: 30px; height: 30px; flex: 0 0 30px; border: 2px solid var(--gold); border-radius: 50%; object-fit: cover; }
+        .discord-profile__name { overflow: hidden; font: 700 .58rem var(--font-display); text-overflow: ellipsis; white-space: nowrap; }
+        .discord-profile__button {
+            padding: 6px 8px;
+            color: var(--wine);
+            border: 0;
+            border-radius: 999px;
+            background: var(--gold-bright);
+            cursor: pointer;
+            font: 700 .5rem var(--font-display);
+            text-transform: uppercase;
+        }
+        .discord-profile__logout { width: 24px; height: 24px; padding: 0; color: var(--cream); background: var(--wine); }
         .game-heading h1 { font-size: clamp(2.2rem, 7vw, 4.6rem); letter-spacing: -.045em; }
         .game-heading { align-items: center; }
         .game-heading > div:first-child { padding-left: clamp(18px, 2.6vw, 38px); }
@@ -387,7 +486,8 @@
         }
 
         .online-players { display: flex; flex-wrap: wrap; gap: 7px; }
-        .online-player { padding: 7px 10px; border-radius: 999px; color: var(--cream); background: rgba(7, 28, 46, .76); font-size: .72rem; }
+        .online-player { display: inline-flex; align-items: center; gap: 7px; padding: 7px 10px; border-radius: 999px; color: var(--cream); background: rgba(7, 28, 46, .76); font-size: .72rem; }
+        .online-player__avatar { width: 24px; height: 24px; border: 1px solid var(--gold); border-radius: 50%; object-fit: cover; }
         .online-player.is-host::after { content: " · ведущий"; color: var(--gold); }
         .online-actions { display: flex; gap: 8px; }
         .online-error { min-height: 22px; margin: -4px 0 8px; color: #ffb9b9; text-align: right; }
@@ -400,18 +500,19 @@
             width: 26px;
             height: 26px;
             pointer-events: none;
-            border-top: 2px solid var(--gold);
+            border-top: 2px solid var(--active-color);
+            transition: border-color .35s ease;
         }
 
-        .game-board::before { left: 15px; border-left: 2px solid var(--gold); }
-        .game-board::after { right: 15px; border-right: 2px solid var(--gold); }
+        .game-board::before { left: 15px; border-left: 2px solid var(--active-color); }
+        .game-board::after { right: 15px; border-right: 2px solid var(--active-color); }
         .game-board.is-my-turn {
-            border-color: rgba(255, 232, 120, .92);
+            border-color: var(--active-color);
             box-shadow:
-                0 0 0 3px rgba(255, 232, 120, .08),
-                0 0 34px rgba(255, 221, 87, .14),
+                0 0 0 3px var(--active-glow),
+                0 0 40px var(--active-glow),
                 0 22px 55px rgba(0, 0, 0, .3),
-                inset 0 0 55px rgba(0, 0, 0, .2);
+                inset 0 0 65px var(--active-glow);
         }
 
         .game-board.is-my-turn .turn-indicator {
@@ -428,6 +529,7 @@
             50% { box-shadow: 0 0 0 3px var(--gold-bright), 0 0 18px rgba(255, 232, 120, .5); }
         }
         .opponent { background: linear-gradient(145deg, rgba(78, 19, 38, .82), rgba(34, 12, 25, .85)); }
+        .opponent__avatar { width: 34px; height: 34px; margin: 0 auto 6px; border: 2px solid var(--gold); border-radius: 50%; object-fit: cover; }
         .opponent.is-human::after { content: "ИГРОК"; display: block; margin-top: 4px; color: var(--gold); font: 700 .48rem var(--font-display); }
         .opponent.is-bot::after { content: "БОТ"; display: block; margin-top: 4px; color: var(--cream-muted); font: 700 .48rem var(--font-display); }
 
@@ -456,6 +558,9 @@
             .site-header { width: calc(100% - 28px); margin-top: 12px; }
             .header-back { left: 16px; }
             .header-back span { display: none; }
+            .discord-profile { right: 10px; max-width: 112px; }
+            .discord-profile__name { display: none; }
+            .discord-profile__button { font-size: .44rem; }
             .game-heading { align-items: stretch; }
             .game-heading > div:first-child { padding-left: 0; }
             .setup { grid-template-columns: repeat(2, minmax(0, 1fr)); min-width: 0; }
@@ -476,6 +581,12 @@
             <a class="is-active" href="catalog.html" aria-current="page">Игры</a>
             <a href="https://discord.gg/reRVVvXVa9" target="_blank" rel="noopener noreferrer">Вечер</a>
         </nav>
+        <div class="discord-profile" id="discord-profile" aria-label="Профиль Discord">
+            <img class="discord-profile__avatar" data-discord-avatar alt="Аватар Discord" hidden>
+            <span class="discord-profile__name" data-discord-name>Discord</span>
+            <button class="discord-profile__button" data-discord-login type="button">Привязать</button>
+            <button class="discord-profile__button discord-profile__logout" data-discord-logout type="button" title="Отвязать Discord" aria-label="Отвязать Discord" hidden>×</button>
+        </div>
     </header>
 
     <main class="uno-page">
@@ -533,7 +644,11 @@
 
         <section class="game-board" aria-label="Игровой стол UNO">
             <div class="opponents" id="opponents" aria-label="Соперники"></div>
-            <p class="turn-indicator" id="status" aria-live="polite">Нажми «Новая партия», чтобы начать.</p>
+            <p class="turn-indicator" id="status" aria-live="polite">
+                <span class="direction-indicator" id="direction-indicator" aria-label="Направление по часовой стрелке">↻</span>
+                <span class="status-text" id="status-text">Начать партию</span>
+                <span class="current-color" id="current-color" aria-label="Текущий цвет не выбран"></span>
+            </p>
 
             <div class="table-center">
                 <div class="pile">
@@ -565,6 +680,18 @@
             <button class="color-choice" type="button" data-color="blue" aria-label="Синий" style="background: var(--blue)"></button>
         </div>
     </dialog>
+    <dialog class="game-alert" id="game-alert" aria-describedby="game-alert-message">
+        <div class="game-alert__mark" aria-hidden="true">!</div>
+        <p class="game-alert__message" id="game-alert-message"></p>
+        <div class="game-alert__actions">
+            <button class="control-button" id="game-alert-cancel" type="button">Отмена</button>
+            <button class="control-button control-button--gold" id="game-alert-ok" type="button">Понятно</button>
+        </div>
+    </dialog>
+    <script src="uno-dialog.js"></script>
+    <script src="discord-config.js"></script>
+    <script src="discord-profile.js"></script>
+    <script>window.DiscordProfile.mount();</script>
     <script>
         if (document.documentElement.classList.contains("online-mode")) {
             if (location.protocol === "file:") {
