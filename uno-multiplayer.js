@@ -192,6 +192,9 @@ function nextIndex(engine, steps = 1) { return (engine.current + engine.directio
 function next(engine, steps = 1) { engine.current = nextIndex(engine, steps); }
 
 async function saveEngine(engine, message) {
+    // Realtime Database removes keys whose value is null. After reading the
+    // engine back, `winner` can therefore be absent; never send undefined.
+    engine.winner ??= null;
     const players = {};
     for (const id of engine.order) {
         const avatarUrl = room?.players?.[id]?.avatarUrl;
