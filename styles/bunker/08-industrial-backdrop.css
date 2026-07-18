@@ -1,0 +1,217 @@
+/* Фон Бункера по принципу UNO: градиент и несколько тихих контурных знаков. */
+body {
+    background:
+        radial-gradient(circle at 50% 20%, rgba(37, 101, 143, .48), transparent 38%),
+        radial-gradient(circle, rgba(214, 183, 81, .09) 0 1px, transparent 1.5px) 12px 12px / 72px 72px,
+        linear-gradient(145deg, #174a70, #071c2e);
+}
+
+.bunker-backdrop {
+    color: rgba(214, 183, 81, .19);
+    background: none;
+}
+
+.bunker-backdrop::before {
+    content: "";
+    position: absolute;
+    top: 34%;
+    right: 7%;
+    width: 42px;
+    height: 150px;
+    opacity: .52;
+    background:
+        linear-gradient(currentColor, currentColor) 0 0 / 1px 100% no-repeat,
+        repeating-linear-gradient(0deg, currentColor 0 1px, transparent 1px 15px) 0 0 / 14px 100% no-repeat;
+}
+
+.bunker-backdrop::after {
+    content: "PRESSURE / STABLE";
+    position: absolute;
+    right: 7%;
+    bottom: 6%;
+    color: currentColor;
+    font: 700 .45rem/1 var(--display);
+    letter-spacing: .14em;
+    opacity: .58;
+}
+
+.bunker-backdrop__detail {
+    position: absolute;
+    display: block;
+    pointer-events: none;
+    opacity: .2;
+    filter: drop-shadow(0 5px 0 rgba(7, 28, 46, .12));
+}
+.bunker-backdrop__detail--valve { top: -8px; left: 0; width: min(20vw, 320px); }
+.bunker-backdrop__detail--hazard { right: 7%; bottom: 1.5%; width: 118px; opacity: .16; }
+
+.bunker-backdrop__wall,
+.bunker-backdrop__beam,
+.bunker-backdrop__pipe,
+.bunker-backdrop__floor { display: none; }
+
+/* Два больших орбитальных контура дают глубину без изображения реальной стены. */
+.bunker-backdrop__hatch,
+.bunker-backdrop__cable--left {
+    position: absolute;
+    width: 230px;
+    height: 84px;
+    border: 1px solid currentColor;
+    border-radius: 50%;
+    background: none;
+    box-shadow: none;
+    opacity: 1;
+}
+
+.bunker-backdrop__hatch {
+    top: 16%;
+    right: 4%;
+    left: auto;
+    transform: rotate(-18deg);
+}
+
+.bunker-backdrop__hatch::before {
+    content: "";
+    position: absolute;
+    inset: 18px -28px;
+    width: auto;
+    height: auto;
+    border: 1px solid currentColor;
+    border-radius: 50%;
+    background: none;
+    transform: rotate(12deg);
+}
+.bunker-backdrop__hatch::after,
+.bunker-backdrop__hatch i { display: none; }
+
+.bunker-backdrop__cable--left {
+    top: auto;
+    right: auto;
+    bottom: 8%;
+    left: 3%;
+    transform: rotate(16deg);
+}
+.bunker-backdrop__cable--left::after {
+    content: "";
+    position: absolute;
+    inset: 16px -22px;
+    width: auto;
+    height: auto;
+    border: 1px solid currentColor;
+    border-radius: 50%;
+}
+.bunker-backdrop__cable--right { display: none; }
+
+/* Контурные панели работают как карточки +4 и поворота на фоне UNO. */
+.bunker-backdrop__console,
+.bunker-backdrop__sector {
+    position: absolute;
+    width: 92px;
+    height: 132px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    color: currentColor;
+    border: 2px solid currentColor;
+    border-radius: 13px;
+    background: none;
+    box-shadow: none;
+    font: 800 .7rem/1 var(--display);
+    letter-spacing: .08em;
+    text-align: center;
+    opacity: 1;
+}
+
+.bunker-backdrop__console {
+    top: 23%;
+    left: -35px;
+    right: auto;
+    transform: rotate(-14deg);
+}
+.bunker-backdrop__console::before {
+    content: "04";
+    display: block;
+    padding: 0;
+    color: currentColor;
+    border: 0;
+    font: 800 1.35rem/1 var(--display);
+    letter-spacing: 0;
+}
+.bunker-backdrop__console::after {
+    content: "";
+    position: absolute;
+    inset: 16px 18px;
+    height: auto;
+    border: 1px solid currentColor;
+    border-radius: 18px;
+    background: repeating-linear-gradient(0deg, transparent 0 12px, currentColor 12px 13px);
+    opacity: .55;
+}
+.bunker-backdrop__console i { display: none; }
+
+.bunker-backdrop__sector {
+    top: auto;
+    right: -28px;
+    bottom: 14%;
+    left: auto;
+    transform: rotate(12deg);
+}
+.bunker-backdrop__sector::before {
+    content: "";
+    position: absolute;
+    inset: 16px 18px;
+    border: 1px solid currentColor;
+    border-radius: 18px;
+    background: radial-gradient(circle, transparent 0 17px, currentColor 18px 18.5px, transparent 19px);
+}
+
+/* Рабочая область такая же спокойная, как внешняя плита UNO. */
+.bunker-page {
+    background-color: #25658f;
+    background-image:
+        repeating-linear-gradient(135deg, transparent 0 34px, rgba(255, 255, 255, .018) 34px 36px),
+        linear-gradient(90deg, transparent 49.9%, rgba(7, 28, 46, .055) 50%, transparent 50.1%);
+    box-shadow: 0 18px 0 rgba(7, 28, 46, .12);
+}
+.bunker-hardware { display: block; background: none; }
+.bunker-hardware > img,
+.bunker-conduit,
+.bunker-pressure-gauge,
+.bunker-warning-band,
+.bunker-rivets { display: none; }
+.bunker-vent {
+    display: grid;
+    right: 28px;
+    bottom: 18px;
+    width: 104px;
+    height: 38px;
+    opacity: .32;
+    transform: skewX(-5deg);
+}
+
+@media (max-width: 860px) {
+    .bunker-backdrop__console,
+    .bunker-backdrop__sector { opacity: .58; }
+    .bunker-backdrop__hatch,
+    .bunker-backdrop__cable--left { opacity: .7; }
+    .bunker-backdrop__detail { display: none; }
+}
+
+@media (max-width: 600px) {
+    .bunker-backdrop { display: block; color: rgba(214, 183, 81, .1); }
+    .bunker-backdrop::before,
+    .bunker-backdrop::after { display: none; }
+    .bunker-backdrop__console { top: 25%; }
+    .bunker-backdrop__sector { bottom: 10%; }
+    .bunker-page {
+        box-shadow:
+            0 9px 0 rgba(7, 28, 46, .2),
+            inset 0 0 0 2px rgba(214, 183, 81, .1);
+    }
+    .bunker-vent { display: none; }
+}
+
+@media (min-width: 861px) and (max-width: 1500px) {
+    .bunker-backdrop__detail--valve { left: -48px; width: 220px; opacity: .13; }
+    .bunker-backdrop__detail--hazard { right: 10px; width: 96px; opacity: .11; }
+}

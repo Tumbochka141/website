@@ -1,0 +1,72 @@
+/* Мобильная игровая полка. */
+@media (max-width: 600px) {
+    .site-header {
+        position: sticky;
+        top: 6px;
+        z-index: 30;
+        width: calc(100% - 14px);
+        margin-top: 7px;
+        border-radius: 14px 14px 4px 4px;
+        border-bottom-width: 4px;
+        box-shadow: none;
+    }
+
+    .catalog-page {
+        width: calc(100% - 14px);
+        margin-top: 0;
+        padding: 7px;
+        border-color: #d6b751;
+        border-top: 0;
+        border-radius: 4px 4px 14px 14px;
+        box-shadow:
+            0 9px 0 rgba(7, 28, 46, .2),
+            inset 0 0 0 2px rgba(214, 183, 81, .1);
+    }
+
+    .catalog-panel { padding: 16px 9px; border-radius: 11px; }
+    .catalog-heading { margin-bottom: 22px; padding: 3px 3px 18px; }
+    .catalog-heading h1 { font-size: clamp(1.65rem, 8vw, 2.25rem); }
+    .catalog-heading > p:last-child { max-width: 36ch; }
+
+    .game-grid { gap: 10px; }
+    .game-card {
+        min-height: 154px;
+        grid-template-columns: minmax(150px, 40%) minmax(0, 1fr);
+        border-radius: 9px;
+        box-shadow: 0 5px 0 rgba(7, 28, 46, .2);
+    }
+    .game-card__art {
+        width: 100%;
+        height: 100%;
+        aspect-ratio: auto;
+        border-right: 1px solid rgba(214, 183, 81, .22);
+        border-bottom: 0;
+    }
+    #uno .game-card__art img { object-fit: contain; background: #07345f; }
+    .game-card__body {
+        min-height: 154px;
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 10px;
+        align-items: center;
+        padding: 12px 13px;
+    }
+    .game-card__title { align-self: end; }
+    .game-card__meta { align-self: start; align-content: center; text-align: left; }
+
+    .section-label--soon { margin-top: 24px; }
+    .soon-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; }
+    .soon-card { min-height: 118px; padding: 15px 13px; }
+    .soon-card:nth-child(odd) { border-left: 0; }
+    .soon-card:nth-child(n + 3) { border-top: 1px solid rgba(214, 183, 81, .16); }
+}
+
+@media (max-width: 410px) {
+    .site-header,
+    .catalog-page { width: calc(100% - 10px); }
+    .game-card { grid-template-columns: 126px minmax(0, 1fr); min-height: 140px; }
+    .game-card__body { min-height: 140px; grid-template-columns: 1fr; padding-inline: 11px; }
+    .game-card__meta { grid-template-columns: 1fr 1fr; text-align: left; }
+    .soon-grid { grid-template-columns: 1fr; }
+    .soon-card + .soon-card { border-left: 0; border-top: 1px solid rgba(214, 183, 81, .16); }
+}

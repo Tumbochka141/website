@@ -1,0 +1,128 @@
+body.is-night {
+    --page-start: #0f3557;
+    --page-end: #0d3154;
+    --content-start: #1d5278;
+    --content-end: #26628e;
+    --header-start: #f5f8ff;
+    --header-end: #f5f8ff;
+    --sidebar-start: #3b101c;
+    --sidebar-end: #3b101c;
+    --color-bg: #103a60;
+    --color-primary: #3b101c;
+    --color-text: #f4f7fb;
+    --color-muted: #e0e0e0;
+    --color-border: #2f6c96;
+    --sidebar-bg: #3b101c;
+    --content-bg: linear-gradient(135deg, var(--content-start) 0%, var(--content-end) 100%);
+    background: linear-gradient(135deg, var(--page-start) 0%, color-mix(in srgb, var(--page-start) 55%, var(--page-end)) 44%, var(--page-end) 100%);
+}
+
+body.is-night .header {
+    background: linear-gradient(135deg, var(--header-start), var(--header-end));
+    color: #103a60;
+    border-color: rgba(255, 255, 255, 0.4);
+    border-bottom-color: #ffdd57;
+}
+
+body.is-night .header .nav a {
+    color: #103a60;
+}
+
+body.is-night .header .logo {
+    background: rgba(59, 16, 28, 0.08);
+}
+
+body.is-night .header .logo span {
+    color: #3b101c;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.38);
+}
+
+body:not(.is-night) .day-night-toggle__sky {
+    background: linear-gradient(180deg, #83c8ef 0%, #d5edfa 100%);
+}
+
+body:not(.is-night) .day-night-toggle__moon,
+body:not(.is-night) .day-night-toggle__orbit {
+    opacity: 0;
+}
+
+body:not(.is-night) .day-night-toggle__moon {
+    transform: translateX(-2rem);
+}
+
+body:not(.is-night) .day-night-toggle__owl {
+    transform: translateX(-50%) translateY(3px) rotate(-3deg);
+    opacity: 0;
+    filter: saturate(.72) drop-shadow(0 2px 1px rgba(0,0,0,.18));
+}
+
+body:not(.is-night) .day-night-toggle__label {
+    color: #4b301d;
+    text-shadow: none;
+}
+
+body:not(.is-night)::before {
+    background: linear-gradient(180deg, var(--sidebar-start), var(--sidebar-end));
+}
+
+body:not(.is-night) .header {
+    background: linear-gradient(135deg, var(--header-start), var(--header-end));
+    color: #4b241d;
+    border-color: rgba(255, 255, 255, .58);
+    border-bottom-color: #e7bd3d;
+    box-shadow: 0 10px 28px rgba(104, 74, 26, .2);
+}
+
+body:not(.is-night) .header .logo {
+    color: #4b241d;
+    background: rgba(255, 255, 255, .34);
+    border-color: rgba(92, 42, 31, .22);
+    border-bottom-color: #e7bd3d;
+    box-shadow: 0 8px 18px rgba(104, 74, 26, .16);
+}
+
+body:not(.is-night) .header .logo span,
+body:not(.is-night) .header .nav a {
+    color: #4b241d;
+    text-shadow: none;
+}
+
+body:not(.is-night) .header .nav a:hover {
+    color: #32130f;
+    background-color: rgba(92, 42, 31, .1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .day-night-toggle * { transition: none !important; animation: none !important; }
+}
+
+/* Previous notification/profile controls (kept unused for compatibility). */
+.header .actions .bell,
+.header .actions .avatar {
+    width: 2.2rem;
+    height: 2.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #103a60; /* РўРµРјРЅРѕ-СЃРёРЅРёРµ РёРєРѕРЅРєРё */
+    background-color: rgba(16, 58, 96, 0.08); /* РќРµР¶РЅС‹Р№ С‚РµРјРЅРѕ-СЃРёРЅРёР№ С„РѕРЅ РїРѕРґ РёРєРѕРЅРєРё */
+    border-radius: 50%;
+    border: 1px solid rgba(16, 58, 96, 0.15);
+    transition: all .2s ease;
+}
+
+.header .actions .bell:hover,
+.header .actions .avatar:hover {
+    color: var(--color-primary); /* Р‘РѕСЂРґРѕРІС‹Р№ РїСЂРё РЅР°РІРµРґРµРЅРёРё */
+    background-color: rgba(59, 16, 28, 0.08); /* РќРµР¶РЅС‹Р№ Р±РѕСЂРґРѕРІС‹Р№ С„РѕРЅ */
+    border-color: rgba(59, 16, 28, 0.2);
+    cursor: pointer;
+}
+
+.header .actions .avatar {
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+
+

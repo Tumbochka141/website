@@ -1,0 +1,82 @@
+html, body {
+    height: 100%;
+    margin: 0;
+    font-family: system-ui, sans-serif;
+    color: var(--color-text);
+    background:
+        linear-gradient(135deg, var(--page-start) 0%, color-mix(in srgb, var(--page-start) 55%, var(--page-end)) 48%, var(--page-end) 100%);
+}
+
+@property --page-start { syntax: '<color>'; inherits: true; initial-value: #e8e0d0; }
+@property --page-end { syntax: '<color>'; inherits: true; initial-value: #ddd2bf; }
+@property --content-start { syntax: '<color>'; inherits: true; initial-value: #f5f0e8; }
+@property --content-end { syntax: '<color>'; inherits: true; initial-value: #f5f0e8; }
+@property --header-start { syntax: '<color>'; inherits: true; initial-value: #fbf7e8; }
+@property --header-end { syntax: '<color>'; inherits: true; initial-value: #eee3bf; }
+@property --sidebar-start { syntax: '<color>'; inherits: true; initial-value: #8b3d3d; }
+@property --sidebar-end { syntax: '<color>'; inherits: true; initial-value: #7a2a2a; }
+
+body {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(28px, 4vw) 1fr minmax(28px, 4vw);
+    grid-template-rows: minmax(32px, 4vh) 1fr minmax(32px, 4vh);
+    grid-template-areas:
+        ". . ."
+        ". main ."
+        ". . .";
+    background-color: var(--color-bg);
+    overflow-x: hidden;
+    transition: --page-start 1.15s cubic-bezier(.22, 1, .36, 1),
+                --page-end 1.15s cubic-bezier(.22, 1, .36, 1),
+                --content-start 1.15s cubic-bezier(.22, 1, .36, 1),
+                --content-end 1.15s cubic-bezier(.22, 1, .36, 1),
+                --header-start 1.15s cubic-bezier(.22, 1, .36, 1),
+                --header-end 1.15s cubic-bezier(.22, 1, .36, 1),
+                --sidebar-start 1.15s cubic-bezier(.22, 1, .36, 1),
+                --sidebar-end 1.15s cubic-bezier(.22, 1, .36, 1);
+}
+
+body::before {
+    content: '';
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: max(22vw, calc(18vw + 28px));
+    background: linear-gradient(180deg, var(--sidebar-start), var(--sidebar-end));
+    pointer-events: none;
+    z-index: 0;
+}
+
+.main {
+    position: relative;
+    z-index: 1;
+    grid-area: main;
+    display: grid;
+    grid-template-columns: 18vw 1fr;
+    grid-template-rows: auto 1fr;
+    min-width: 0;
+    column-gap: 44px;
+    row-gap: 32px;
+}
+
+/* Theme variables */
+:root {
+    --page-start: #e8e0d0;
+    --page-end: #ddd2bf;
+    --content-start: #f5f0e8;
+    --content-end: #f5f0e8;
+    --header-start: #fbf7e8;
+    --header-end: #eee3bf;
+    --sidebar-start: #8b3d3d;
+    --sidebar-end: #7a2a2a;
+    --color-bg: #e8e0d0;
+    --color-accent: #ffdd57;
+    --color-primary: #5c1a1a;
+    --color-text: #1a0a0a;
+    --color-muted: #665b52;
+    --color-border: #cbbfae;
+    --sidebar-bg: var(--color-primary);
+    --content-bg: linear-gradient(135deg, var(--content-start) 0%, var(--content-end) 100%);
+    --link-hover: rgba(255,221,87,0.12);
+}
+

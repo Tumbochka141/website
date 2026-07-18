@@ -1,0 +1,106 @@
+/* Малые редакционные детали главной страницы. */
+.home-shelf-meta { display: none; }
+
+.main__content { position: relative; }
+.main__content::before {
+    content: "GAME SHELF / 04";
+    position: absolute;
+    z-index: 6;
+    top: 7px;
+    left: 16px;
+    padding: 4px 7px;
+    color: rgba(255, 232, 120, .74);
+    background: rgba(7, 28, 46, .82);
+    border: 1px solid rgba(214, 183, 81, .24);
+    border-radius: 4px;
+    font-size: .43rem;
+    font-weight: 900;
+    letter-spacing: .11em;
+    pointer-events: none;
+}
+
+.gallery-item::before {
+    content: "";
+    position: absolute;
+    z-index: 5;
+    top: 7px;
+    left: 7px;
+    width: 14px;
+    height: 14px;
+    border-top: 1px solid rgba(255, 232, 120, .72);
+    border-left: 1px solid rgba(255, 232, 120, .72);
+    pointer-events: none;
+}
+
+.gallery-item::after {
+    position: absolute;
+    z-index: 5;
+    top: 9px;
+    right: 9px;
+    padding: 4px 6px;
+    color: rgba(255, 232, 120, .82);
+    background: rgba(7, 28, 46, .78);
+    border: 1px solid rgba(214, 183, 81, .22);
+    border-radius: 4px;
+    font-size: .43rem;
+    font-weight: 900;
+    letter-spacing: .1em;
+    pointer-events: none;
+}
+.gallery-item--link::after { content: "CATALOG"; }
+.gallery-item[href="uno.html"]::after { content: "01 / READY"; }
+.gallery-item[href="bunker.html"]::after { content: "02 / READY"; }
+.gallery-item[href*="mafia"]::after { content: "03 / SOON"; }
+
+@media (max-width: 720px) {
+    .main__content {
+        background-image:
+            linear-gradient(90deg, transparent calc(50% - .5px), rgba(214, 183, 81, .055) 50%, transparent calc(50% + .5px)),
+            radial-gradient(circle, rgba(214, 183, 81, .13) 0 1px, transparent 1.5px);
+        background-position: center, 5px 5px;
+        background-size: auto, 42px 42px;
+    }
+
+    .main__content::before { display: none; }
+
+    .home-shelf-meta {
+        min-height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-top: 9px;
+        padding: 0 3px;
+        color: #d6b751;
+        border-bottom: 1px solid rgba(214, 183, 81, .2);
+        font-size: .48rem;
+        font-weight: 900;
+        letter-spacing: .1em;
+        text-transform: uppercase;
+    }
+    .home-shelf-meta span:last-child { color: rgba(245, 239, 228, .52); font-size: .43rem; }
+    .gallery-grid { margin-top: 7px; }
+
+    .gallery-item::after {
+        top: 7px;
+        right: 7px;
+        padding: 3px 5px;
+        font-size: .39rem;
+    }
+    .gallery-item--link::after { top: 50%; transform: translateY(-50%); }
+
+    .sidebar-about,
+    .sidebar-discord-section { position: relative; padding-top: 30px; }
+    .sidebar-about::before,
+    .sidebar-discord-section::before {
+        position: absolute;
+        top: 10px;
+        left: 12px;
+        color: #d6b751;
+        font-size: .42rem;
+        font-weight: 900;
+        letter-spacing: .1em;
+    }
+    .sidebar-about::before { content: "01 / INFO"; }
+    .sidebar-discord-section::before { content: "02 / PROFILE"; }
+}

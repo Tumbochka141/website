@@ -1,0 +1,64 @@
+@media (max-width: 860px) {
+    .bunker-backdrop__pipe { opacity: .32; }
+    .bunker-backdrop__hatch,
+    .bunker-backdrop__sector { display: none; }
+    .site-nav { display: none; }
+    .mode-shell { grid-template-columns: 1fr; }
+    .round-bar { grid-template-columns: auto auto 1fr; align-items: center; gap: 18px; }
+    .round-bar__phase { grid-column: auto; padding: 0 0 0 18px; border-top: 0; border-left: 1px solid var(--line); }
+    .round-bar .button { grid-column: 1 / -1; }
+    .player-layout, .host-layout { grid-template-columns: 1fr; }
+    .player-aside { grid-template-columns: 1fr 1fr; }
+    .host-traits { grid-template-columns: repeat(2, 1fr); }
+    .host-traits > span:nth-child(3) { border-left: 0; border-top: 1px solid rgba(214, 183, 81, .16); }
+    .host-traits > span:nth-child(4) { border-top: 1px solid rgba(214, 183, 81, .16); }
+}
+
+@media (max-width: 680px) {
+    .scenario-grid { grid-template-columns: 1fr; }
+    .scenario-card { min-height: 132px; }
+    .scenario-card + .scenario-card { border-left: 0; border-top: 1px solid rgba(214, 183, 81, .16); }
+}
+
+@media (max-width: 600px) {
+    .bunker-backdrop { display: none; }
+    .bunker-page { width: calc(100% - 14px); margin-top: 10px; padding: 12px 7px 14px; }
+    .site-header { top: 7px; width: calc(100% - 14px); min-height: 0; margin-top: 7px; padding: 9px; }
+    .header-inner { min-height: 0; grid-template-columns: 30px minmax(0, 1fr); gap: 7px; }
+    .header-game { padding-right: 0; border-right: 0; }
+    .header-game span { display: none; }
+    .header-game h1 { font-size: 1.15rem; }
+    .header-tools { grid-column: 1 / -1; width: 100%; }
+    .mode-tabs { width: 100%; border-radius: 8px; }
+    .mode-tabs label { min-height: 40px; display: grid; place-items: center; padding: 7px 9px; border-radius: 6px; }
+    .mode-tabs span { font-size: .64rem; }
+    .game-status { display: none; }
+    .round-bar { grid-template-columns: 1fr 1fr; }
+    .round-bar__phase { grid-column: 1 / -1; padding: 14px 0 0; border-top: 1px solid var(--line); border-left: 0; }
+    .round-bar .button { grid-column: 1 / -1; }
+    .traits-grid, .player-aside { grid-template-columns: 1fr; }
+    .trait-card:nth-child(even) { border-left: 0; padding-left: 14px; }
+    .trait-card--special { grid-column: auto; }
+    .panel { padding: 17px 14px; }
+    .panel-heading { flex-direction: column; }
+    .setup-grid { grid-template-columns: 1fr 1fr; }
+    .setup-grid__name, .setup-grid .button { grid-column: 1 / -1; }
+    .host-traits { grid-template-columns: 1fr; }
+    .host-traits > span + span { border-left: 0; border-top: 1px solid rgba(214, 183, 81, .16); }
+    .host-player-actions { align-items: stretch; flex-direction: column; }
+    .bunker-hardware > img { width: 260px; opacity: .1; }
+    .bunker-vent,
+    .bunker-pressure-gauge,
+    .bunker-warning-band { display: none; }
+    .bunker-conduit { left: 18%; width: 64%; opacity: .5; }
+}
+
+@media (max-width: 390px) {
+    .round-bar { gap: 12px 8px; padding: 18px 14px; }
+    .scenario-card { padding: 18px 16px; }
+    .private-badge { align-self: flex-start; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition: none !important; }
+}

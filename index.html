@@ -10,6 +10,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Unbounded:wght@600;700;800&amp;display=swap" rel="stylesheet">
     <link rel="stylesheet" href="caine.css">
+    <link rel="stylesheet" href="styles/shared/nav-cassette.css">
     <script src="generator.js" defer></script>
 </head>
 <body class="is-night">
@@ -42,19 +43,12 @@
 
                 <div class="sidebar-discord-section">
                     <p class="sidebar-label">Discord</p>
-                    <div class="discord-card">
-                        <div class="discord-card__top">
-                            <span class="discord-card__icon" aria-hidden="true">
-                                <svg viewBox="0 0 24 24"><path d="M4 5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-6l-4.5 3.6V16H6a2 2 0 0 1-2-2V5z"/></svg>
-                            </span>
-                            <span>
-                                <strong data-discord-name>Eulennest</strong>
-                                <small><i></i><span data-discord-counts>Загрузка данных…</span></small>
-                            </span>
-                        </div>
-                        <div class="discord-avatars" aria-hidden="true">
-                            <span>Й</span><span>А</span><span>К</span><span>С</span><span>+20</span>
-                        </div>
+                    <div class="discord-profile" id="discord-profile" aria-label="Профиль Discord">
+                        <img class="discord-profile__avatar" data-discord-avatar alt="Аватар Discord" hidden>
+                        <span class="discord-profile__mark" aria-hidden="true">◆</span>
+                        <span class="discord-profile__copy"><small>Ваш профиль</small><span class="discord-profile__name" data-discord-name>Discord не привязан</span></span>
+                        <button class="discord-profile__button" data-discord-login type="button">Привязать</button>
+                        <button class="discord-profile__button discord-profile__logout" data-discord-logout type="button" title="Отвязать Discord" aria-label="Отвязать Discord" hidden>×</button>
                     </div>
                 </div>
 
@@ -62,18 +56,17 @@
             </div>
         </aside>
         <header class="header">
+            <div class="header-section" aria-label="Текущий раздел: Основа">
+                <span>Eulennest</span>
+                <strong>Основа</strong>
+            </div>
             <nav class="nav">
                 <a href="index.html" aria-current="page">Гнездо</a>
                 <a href="catalog.html">Игры</a>
                 <a href="https://discord.gg/reRVVvXVa9" target="_blank" rel="noopener noreferrer">Вечер</a>
             </nav>
+            <span class="header-ornament" aria-hidden="true"><img src="img/header-flourish.svg" alt=""></span>
             <div class="actions">
-                <div class="discord-profile" id="discord-profile" aria-label="Профиль Discord">
-                    <img class="discord-profile__avatar" data-discord-avatar alt="Аватар Discord" hidden>
-                    <span class="discord-profile__name" data-discord-name>Discord</span>
-                    <button class="discord-profile__button" data-discord-login type="button">Привязать</button>
-                    <button class="discord-profile__button discord-profile__logout" data-discord-logout type="button" title="Отвязать Discord" aria-label="Отвязать Discord" hidden>×</button>
-                </div>
                 <button class="day-night-toggle" type="button" aria-label="Включить ночной режим" aria-pressed="false">
                     <span class="day-night-toggle__sky" aria-hidden="true">
                         <span class="day-night-toggle__moon"></span>
@@ -95,10 +88,34 @@
             </div>
         </header>
         <section class="main__content">
+            <section class="mobile-hero" aria-label="Игровая зона">
+                <p class="mobile-hero__eyebrow">Eulennest · игровой раздел</p>
+                <p class="mobile-hero__copy">Выбирайте игру, собирайте комнату и зовите остальных. Всё необходимое находится ниже.</p>
+                <div class="mobile-hero__actions">
+                    <a href="catalog.html">Выбрать игру</a>
+                    <a href="https://discord.gg/reRVVvXVa9" target="_blank" rel="noopener noreferrer">Зайти вечером</a>
+                </div>
+                <small>Игры запускаются прямо в браузере.</small>
+                <button class="day-night-toggle mobile-theme-toggle" type="button" aria-label="Включить ночной режим" aria-pressed="false">
+                    <span class="day-night-toggle__sky" aria-hidden="true">
+                        <span class="day-night-toggle__moon"></span>
+                        <span class="day-night-toggle__orbit day-night-toggle__orbit--outer"><span class="day-night-toggle__sun day-night-toggle__sun--large"></span></span>
+                        <span class="day-night-toggle__orbit day-night-toggle__orbit--inner"><span class="day-night-toggle__sun day-night-toggle__sun--small"></span></span>
+                        <span class="day-night-toggle__cloud day-night-toggle__cloud--left"></span>
+                        <span class="day-night-toggle__cloud day-night-toggle__cloud--right"></span>
+                        <span class="day-night-toggle__main-sun">☀</span>
+                        <img class="day-night-toggle__owl" src="img/night-gray-owl-branch.png" alt="">
+                        <img class="day-night-toggle__sleeping-owl" src="img/sleeping-gray-owl-branch.png" alt="">
+                        <span class="day-night-toggle__sleep">Zzz</span>
+                    </span>
+                    <span class="day-night-toggle__label">NIGHT MODE</span>
+                </button>
+            </section>
+            <div class="home-shelf-meta" aria-hidden="true"><span>Выбор вечера</span><span>03 игры · 01 каталог</span></div>
             <div class="gallery-grid">
                 <a href="catalog.html" class="gallery-item gallery-item--link" aria-label="Открыть каталог игр">
                     <div class="gallery-item-image-wrap">
-                        <img src="img/game-edit-large-dollar.png" alt="Игровой стол с настольными и карточными играми" class="gallery-img">
+                        <img src="img/game-zone-wide-v2.png" alt="Игровой стол с настольными и карточными играми" class="gallery-img">
                     </div>
                     <div class="gallery-caption">
                         <h4>Не нашли нужную игру?</h4>
@@ -106,13 +123,13 @@
                     </div>
                 </a>
 
-                <a href="catalog.html#monopoly" class="gallery-item" aria-label="Открыть Монополию в каталоге">
+                <a href="uno.html" class="gallery-item" aria-label="Открыть игру UNO">
                     <div class="gallery-item-image-wrap">
-                        <img src="img/monopoly.png" alt="Монополия" class="gallery-img">
+                        <img src="img/uno-cover-wide-v2.png" alt="UNO" class="gallery-img">
                     </div>
                     <div class="gallery-caption">
-                        <h4>Монополия</h4>
-                        <p>Ну давай, скажи что у тебя крепкая дружба</p>
+                        <h4>UNO</h4>
+                        <p>Быстро, ярко и с обидами из-за +4</p>
                     </div>
                 </a>
 
@@ -126,7 +143,7 @@
                     </div>
                 </a>
 
-                <a href="catalog.html#bunker" class="gallery-item" aria-label="Открыть Бункер в каталоге">
+                <a href="bunker.html" class="gallery-item" aria-label="Открыть игру Бункер">
                     <div class="gallery-item-image-wrap">
                         <img src="img/bunker.jpg" alt="Бункер" class="gallery-img">
                     </div>
@@ -140,6 +157,6 @@
     </main>
     <script src="discord-config.js"></script>
     <script src="discord-profile.js"></script>
-    <script>window.DiscordProfile.mount();</script>
+    <script src="data/home/bootstrap.js"></script>
 </body>
 </html>

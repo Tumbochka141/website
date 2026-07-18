@@ -1,0 +1,104 @@
+/* Smooth transition between day and night palettes. */
+html,
+body,
+body::before,
+.header,
+.header .logo,
+.header .logo span,
+.header .nav a,
+.main__content,
+.gallery-item,
+.gallery-item-image-wrap,
+.gallery-caption,
+.gallery-caption h4,
+.gallery-caption p {
+    transition-property: background, background-color, color, border-color, box-shadow, text-shadow;
+    transition-duration: 1.15s;
+    transition-timing-function: cubic-bezier(.22, 1, .36, 1);
+}
+
+.main__content,
+.header,
+.gallery-item {
+    transition-property: background, background-color, color, border-color, box-shadow, text-shadow, transform, left, top;
+}
+
+.gallery-item {
+    transition-duration: 1.8s;
+}
+
+body {
+    transition-property: --page-start, --page-end, --content-start, --content-end, --header-start, --header-end, --sidebar-start, --sidebar-end, background, background-color, color;
+}
+
+.day-night-toggle *,
+.day-night-toggle__sky,
+.day-night-toggle__label {
+    transition-duration: 1.05s;
+    transition-timing-function: cubic-bezier(.22, 1, .36, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html,
+    body,
+    body::before,
+    .header,
+    .header .logo,
+    .header .logo span,
+    .header .nav a,
+    .main__content,
+    .gallery-item,
+    .gallery-item-image-wrap,
+    .gallery-caption,
+    .gallery-caption h4,
+    .gallery-caption p {
+        transition-duration: 0s !important;
+    }
+}
+
+@media (max-width: 720px) {
+    body {
+        grid-template-columns: minmax(18px, 5vw) 1fr minmax(18px, 5vw);
+        grid-template-areas:
+            ". . ."
+            ". main ."
+            ". . .";
+    }
+
+    body::before {
+        width: 100%;
+        height: 140px;
+        inset: 0 0 auto;
+    }
+
+    .main {
+        grid-template-columns: 1fr;
+    }
+
+    .main__sidebar,
+    .main__content {
+        grid-column: 1;
+    }
+
+    .main__sidebar {
+        min-width: 0;
+        padding-bottom: 1rem;
+    }
+
+    .sidebar-text-box {
+        width: 100%;
+        height: auto;
+        min-height: 0;
+        transform: none;
+    }
+
+}
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,22 @@
+/* Небольшая унификация с остальными мобильными экранами. */
+@media (max-width: 600px) {
+    .site-header {
+        position: sticky;
+        border-radius: 14px 14px 4px 4px;
+        border-bottom-width: 4px;
+        box-shadow: none;
+    }
+    .bunker-page {
+        margin-top: 0;
+        border-color: #d6b751;
+        border-top: 0;
+        border-radius: 4px 4px 14px 14px;
+        box-shadow:
+            0 9px 0 rgba(7, 28, 46, .2),
+            inset 0 0 0 2px rgba(214, 183, 81, .1);
+    }
+    .round-bar,
+    .scenario-grid,
+    .panel { border-radius: 11px; }
+    .button { min-height: 44px; }
+}

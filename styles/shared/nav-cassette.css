@@ -1,0 +1,153 @@
+/* Shared ornamental navigation with a moving wine selection plate. */
+.header .nav,
+.site-nav {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(72px, 1fr));
+    gap: 4px;
+    justify-self: start;
+    padding: 4px;
+    background: #eadfd5;
+    border: 1px solid rgba(74, 19, 34, .16);
+    border-radius: 10px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .55);
+    isolation: isolate;
+}
+
+.header .nav::before,
+.site-nav::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    top: 4px;
+    bottom: 4px;
+    left: 4px;
+    width: calc((100% - 16px) / 3);
+    background-color: #4a1322;
+    background-image:
+        linear-gradient(#d6b751, #d6b751), linear-gradient(#d6b751, #d6b751),
+        linear-gradient(#d6b751, #d6b751), linear-gradient(#d6b751, #d6b751),
+        linear-gradient(#d6b751, #d6b751), linear-gradient(#d6b751, #d6b751),
+        linear-gradient(#d6b751, #d6b751), linear-gradient(#d6b751, #d6b751);
+    background-position:
+        5px 5px, 5px 5px,
+        right 5px top 5px, right 5px top 5px,
+        left 5px bottom 5px, left 5px bottom 5px,
+        right 5px bottom 5px, right 5px bottom 5px;
+    background-size:
+        7px 1px, 1px 7px,
+        7px 1px, 1px 7px,
+        7px 1px, 1px 7px,
+        7px 1px, 1px 7px;
+    background-repeat: no-repeat;
+    border-radius: 6px;
+    box-shadow: 0 4px 0 rgba(74, 19, 34, .14);
+    transform: translateX(0);
+    transition: transform .32s cubic-bezier(.22, 1, .36, 1);
+}
+
+/* Inner pages currently keep “Игры” as their active, second section. */
+.site-nav::before { transform: translateX(calc(100% + 4px)); }
+
+.header .nav a,
+.site-nav a {
+    position: relative;
+    z-index: 1;
+    min-width: 0;
+    min-height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 14px !important;
+    overflow: visible;
+    color: #876d71 !important;
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 6px;
+    box-shadow: none !important;
+    font-family: "Unbounded", system-ui, sans-serif;
+    font-size: .64rem !important;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: .08em !important;
+    text-decoration: none;
+    text-transform: uppercase;
+    opacity: 1 !important;
+    transform: none !important;
+    transition: color .18s ease;
+}
+
+.header .nav a::after,
+.site-nav a::after { display: none !important; }
+
+.header .nav a[aria-current="page"],
+.site-nav a[aria-current="page"] { color: #f5efe4 !important; }
+
+.header .nav:has(a:hover) a[aria-current="page"],
+.header .nav:has(a:focus-visible) a[aria-current="page"],
+.site-nav:has(a:hover) a[aria-current="page"],
+.site-nav:has(a:focus-visible) a[aria-current="page"] { color: #876d71 !important; }
+
+.header .nav a:hover,
+.header .nav a:focus-visible,
+.site-nav a:hover,
+.site-nav a:focus-visible { color: #f5efe4 !important; }
+
+.header .nav:has(a:nth-child(1):hover)::before,
+.header .nav:has(a:nth-child(1):focus-visible)::before,
+.site-nav:has(a:nth-child(1):hover)::before,
+.site-nav:has(a:nth-child(1):focus-visible)::before { transform: translateX(0); }
+
+.header .nav:has(a:nth-child(2):hover)::before,
+.header .nav:has(a:nth-child(2):focus-visible)::before,
+.site-nav:has(a:nth-child(2):hover)::before,
+.site-nav:has(a:nth-child(2):focus-visible)::before { transform: translateX(calc(100% + 4px)); }
+
+.header .nav:has(a:nth-child(3):hover)::before,
+.header .nav:has(a:nth-child(3):focus-visible)::before,
+.site-nav:has(a:nth-child(3):hover)::before,
+.site-nav:has(a:nth-child(3):focus-visible)::before { transform: translateX(calc(200% + 8px)); }
+
+/* The home page has a real day/night switch. Its day cassette mirrors the palette. */
+body:not(.is-night) .header .nav {
+    background: #f7edda;
+    border-color: rgba(111, 81, 72, .24);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .82), 0 3px 0 rgba(122, 89, 61, .08);
+}
+
+html body:not(.is-night) .header .nav::before {
+    background-color: #ead99f !important;
+    background-image:
+        linear-gradient(#6f5148, #6f5148), linear-gradient(#6f5148, #6f5148),
+        linear-gradient(#6f5148, #6f5148), linear-gradient(#6f5148, #6f5148),
+        linear-gradient(#6f5148, #6f5148), linear-gradient(#6f5148, #6f5148),
+        linear-gradient(#6f5148, #6f5148), linear-gradient(#6f5148, #6f5148);
+    box-shadow: 0 4px 0 rgba(111, 81, 72, .12);
+}
+
+html body:not(.is-night) .header .nav a,
+html body:not(.is-night) .header .nav a[aria-current="page"] {
+    color: #4a1322 !important;
+    background-color: transparent !important;
+    background-image: none !important;
+}
+
+body:not(.is-night) .header .nav:has(a:hover) a[aria-current="page"],
+body:not(.is-night) .header .nav:has(a:focus-visible) a[aria-current="page"] { color: #876d71 !important; }
+
+body:not(.is-night) .header .nav a:hover,
+body:not(.is-night) .header .nav a:focus-visible { color: #4a1322 !important; }
+
+@media (max-width: 900px) {
+    .site-nav { display: none; }
+}
+
+@media (max-width: 720px) {
+    .header .nav { width: 100%; grid-template-columns: repeat(3, 1fr); }
+    .header .nav a { min-height: 46px; padding-inline: 3px !important; font-size: .59rem !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .header .nav::before,
+    .site-nav::before { transition: none; }
+}

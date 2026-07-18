@@ -1,0 +1,4 @@
+/* Точка подключения стилей UNO. Порядок импортов сохраняет каскад страницы. */
+@import url("styles/uno/01-base.css");
+@import url("styles/uno/02-shell.css");
+@import url("styles/uno/03-mobile-redesign.css");

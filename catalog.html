@@ -9,64 +9,72 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Unbounded:wght@600;700;800&amp;display=swap" rel="stylesheet">
     <link rel="stylesheet" href="catalog.css">
+    <link rel="stylesheet" href="styles/catalog/mobile.css">
+    <link rel="stylesheet" href="styles/shared/nav-cassette.css">
 </head>
 <body>
     <header class="site-header">
-        <nav class="site-nav" aria-label="Основная навигация">
-            <a href="index.html">Гнездо</a>
-            <a class="is-active" href="catalog.html" aria-current="page">Игры</a>
-            <a href="https://discord.gg/reRVVvXVa9" target="_blank" rel="noopener noreferrer">Вечер</a>
-        </nav>
+        <div class="header-inner">
+            <a class="header-back" href="index.html" aria-label="Вернуться в гнездо">←</a>
+            <div class="header-game">
+                <span>Eulennest</span>
+                <strong>Игры</strong>
+            </div>
+            <nav class="site-nav" aria-label="Основная навигация">
+                <a href="index.html">Гнездо</a>
+                <a class="is-active" href="catalog.html" aria-current="page">Игры</a>
+                <a href="https://discord.gg/reRVVvXVa9" target="_blank" rel="noopener noreferrer">Вечер</a>
+            </nav>
+            <span class="catalog-count">2 готовы</span>
+        </div>
     </header>
 
     <main class="catalog-page">
-        <a class="catalog-back" href="index.html">← Вернуться в гнездо</a>
-
         <section class="catalog-panel" aria-labelledby="catalog-title">
             <div class="catalog-heading">
                 <p class="catalog-eyebrow">Игровая полка</p>
-                <h1 id="catalog-title">Каталог игр</h1>
-                <p>Выбирай игру, собирай компанию и устраивай вечер в гнезде.</p>
+                <h1 id="catalog-title">Во что играем?</h1>
+                <p>Выберите игру — всё остальное будет уже внутри.</p>
             </div>
 
             <h2 class="section-label">Уже можно играть</h2>
             <div class="game-grid">
-                <a class="game-card" id="uno" href="uno.html" aria-label="Открыть игру UNO">
+                <a class="game-card is-ready" id="uno" href="uno.html" aria-label="Открыть игру UNO">
                     <span class="game-card__art">
-                        <img src="img/uno.jpg" alt="UNO">
+                        <img src="img/uno-cover-wide-v2.png" alt="UNO">
                     </span>
                     <span class="game-card__body">
-                        <strong>UNO</strong>
+                        <span class="game-card__title"><strong>UNO</strong><small>Играть</small></span>
                         <span class="game-card__meta"><span>2–10 игроков</span><span>≈ 20 минут</span></span>
                     </span>
                 </a>
 
-                <a class="game-card" id="bunker" href="#bunker" aria-label="Открыть игру Бункер">
+                <a class="game-card is-ready" id="bunker" href="bunker.html" aria-label="Открыть игру Бункер">
                     <span class="game-card__art">
                         <img src="img/bunker.jpg" alt="Бункер">
                     </span>
                     <span class="game-card__body">
-                        <strong>Бункер</strong>
+                        <span class="game-card__title"><strong>Бункер</strong><small>Играть</small></span>
                         <span class="game-card__meta"><span>6–15 игроков</span><span>≈ 60 минут</span></span>
                     </span>
                 </a>
 
-                <a class="game-card" id="mafia" href="#mafia" aria-label="Открыть игру Мафия">
+                <a class="game-card is-planned" id="mafia" href="#mafia" aria-label="Мафия в разработке">
                     <span class="game-card__art">
                         <img src="img/mafia.png" alt="Мафия">
                     </span>
                     <span class="game-card__body">
-                        <strong>Мафия</strong>
+                        <span class="game-card__title"><strong>Мафия</strong><small>Скоро</small></span>
                         <span class="game-card__meta"><span>6–12 игроков</span><span>≈ 45 минут</span></span>
                     </span>
                 </a>
 
-                <a class="game-card" id="monopoly" href="#monopoly" aria-label="Открыть игру Монополия">
+                <a class="game-card is-planned" id="monopoly" href="#monopoly" aria-label="Монополия в разработке">
                     <span class="game-card__art">
                         <img src="img/monopoly.png" alt="Монополия">
                     </span>
                     <span class="game-card__body">
-                        <strong>Монополия</strong>
+                        <span class="game-card__title"><strong>Монополия</strong><small>Скоро</small></span>
                         <span class="game-card__meta"><span>2–6 игроков</span><span>≈ 90 минут</span></span>
                     </span>
                 </a>

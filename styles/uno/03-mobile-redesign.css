@@ -1,0 +1,103 @@
+/* Мобильный UNO как набор отдельных интерфейсных панелей. */
+@media (max-width: 720px) {
+    body { padding-bottom: 22px; }
+
+    .site-header {
+        position: sticky;
+        top: 6px;
+        z-index: 30;
+        width: calc(100% - 14px);
+        min-height: 58px;
+        margin-top: 7px;
+        padding: 5px 8px;
+        border-radius: 14px 14px 4px 4px;
+        border-bottom-width: 4px;
+        box-shadow: none;
+    }
+
+    .header-inner { min-height: 48px; }
+    .header-game h1 { font-size: 1.05rem; }
+    .uno-theme-toggle { min-height: 42px; border-radius: 7px; }
+    .uno-theme-toggle__scene { height: 36px; }
+
+    .uno-page {
+        width: calc(100% - 14px);
+        margin-top: 0;
+        padding: 7px 7px 12px;
+        background: var(--uno-worktop);
+        border: 1px solid #d6b751;
+        border-top: 0;
+        border-radius: 4px 4px 14px 14px;
+        box-shadow:
+            0 9px 0 rgba(7, 28, 46, .2),
+            inset 0 0 0 2px rgba(214, 183, 81, .1);
+    }
+
+    .uno-page::before,
+    .uno-page::after { display: none; }
+
+    .setup,
+    .online-room,
+    .game-board {
+        border-radius: 9px;
+        box-shadow: none;
+    }
+
+    .setup {
+        grid-template-columns: minmax(0, 1fr) minmax(126px, 31%);
+        align-items: end;
+        padding: 13px;
+        gap: 9px;
+    }
+    .setup-field { gap: 5px; }
+    .setup input { min-height: 45px; }
+    .setup .control-button { grid-column: auto; min-height: 45px; }
+
+    .online-error { padding-inline: 4px; }
+
+    .game-board {
+        gap: 10px;
+        padding: 12px 8px 10px;
+        border-color: rgba(214, 183, 81, .34);
+    }
+
+    .game-board::before,
+    .game-board::after { top: 10px; width: 18px; height: 18px; }
+    .game-board::before { left: 10px; }
+    .game-board::after { right: 10px; }
+
+    .turn-indicator {
+        min-height: 44px;
+        border-radius: 8px;
+        font-size: .75rem;
+    }
+
+    .table-center { min-height: 188px; }
+    .game-board__ornament {
+        top: 174px;
+        height: 150px;
+        opacity: .62;
+    }
+
+    .player-zone { border-top-color: rgba(214, 183, 81, .25); }
+    .player-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+    .player-controls .control-button { width: 100%; padding-inline: 8px; }
+    .player-controls .control-button:only-child { grid-column: 1 / -1; }
+    .player-hand { min-height: 112px; padding-top: 6px; }
+    .player-hand:empty { min-height: 0; padding: 0; }
+
+    .uno-backdrop-decor { opacity: .45; }
+}
+
+@media (max-width: 410px) {
+    .site-header,
+    .uno-page { width: calc(100% - 10px); }
+    .site-header { padding-inline: 6px; }
+    .header-inner { grid-template-columns: 26px minmax(0, 1fr) 62px; }
+    .uno-theme-toggle { width: 62px; min-width: 62px; }
+    .uno-theme-toggle__scene { width: 58px; flex-basis: 58px; }
+    .setup { grid-template-columns: 1fr; }
+    .table-center { min-height: 170px; }
+    .game-board__ornament { top: 166px; height: 138px; }
+    .player-controls { grid-template-columns: 1fr; }
+}

@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Бункер — игра на выживание в Eulennest">
+    <title>Бункер — Eulennest</title>
+    <link rel="icon" type="image/png" href="img/gashich.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Unbounded:wght@600;700;800&amp;display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="bunker.css">
+    <link rel="stylesheet" href="styles/shared/nav-cassette.css">
+</head>
+<body>
+    <input class="mode-input" type="radio" name="interface-mode" id="mode-player" value="player" checked>
+    <input class="mode-input" type="radio" name="interface-mode" id="mode-host" value="host">
+
+    <div class="bunker-backdrop" aria-hidden="true">
+        <img class="bunker-backdrop__detail bunker-backdrop__detail--valve" src="img/bunker-valve-line.svg" alt="">
+        <img class="bunker-backdrop__detail bunker-backdrop__detail--hazard" src="img/bunker-hazard-mark.svg" alt="">
+        <span class="bunker-backdrop__wall"></span>
+        <span class="bunker-backdrop__beam"><i></i><i></i><i></i></span>
+        <span class="bunker-backdrop__cable bunker-backdrop__cable--left"></span>
+        <span class="bunker-backdrop__cable bunker-backdrop__cable--right"></span>
+        <span class="bunker-backdrop__pipe bunker-backdrop__pipe--left"></span>
+        <span class="bunker-backdrop__pipe bunker-backdrop__pipe--right"></span>
+        <span class="bunker-backdrop__hatch"><i></i></span>
+        <span class="bunker-backdrop__console"><i></i><i></i><i></i><i></i></span>
+        <span class="bunker-backdrop__sector">СЕКТОР 04 · ШЛЮЗ</span>
+        <span class="bunker-backdrop__floor"></span>
+    </div>
+
+    <header class="site-header">
+        <div class="header-inner">
+            <a class="header-back" href="catalog.html" aria-label="Назад к каталогу">←</a>
+            <div class="header-game">
+                <span>Игра на выживание</span>
+                <h1 id="bunker-title">Бункер</h1>
+            </div>
+            <nav class="site-nav" aria-label="Основная навигация">
+                <a href="index.html">Гнездо</a>
+                <a class="is-active" href="catalog.html" aria-current="page">Игры</a>
+                <a href="https://discord.gg/reRVVvXVa9" target="_blank" rel="noopener noreferrer">Вечер</a>
+            </nav>
+            <div class="header-tools">
+                <div class="mode-tabs" role="tablist" aria-label="Выберите режим">
+                    <label for="mode-player" role="tab"><span>Игрок</span></label>
+                    <label for="mode-host" role="tab"><span>Ведущий</span></label>
+                </div>
+                <span class="game-status" id="game-status"><i aria-hidden="true"></i><span>Ожидание</span></span>
+            </div>
+        </div>
+    </header>
+
+    <main class="bunker-page">
+        <div class="bunker-hardware" aria-hidden="true">
+            <img src="img/bunker-hardware.svg" alt="">
+            <span class="bunker-conduit"><i></i><i></i><i></i></span>
+            <span class="bunker-pressure-gauge"><i></i></span>
+            <span class="bunker-warning-band"></span>
+            <span class="bunker-vent"><i></i><i></i><i></i><i></i><i></i></span>
+            <span class="bunker-rivets"><i></i><i></i><i></i></span>
+        </div>
+        <section class="mode-shell" aria-label="Игровой интерфейс">
+            <section class="round-bar" aria-label="Состояние партии">
+                <div><span>Раунд</span><strong><b id="round-current">1</b>/<b id="round-total">5</b></strong></div>
+                <div><span>В игре</span><strong><b id="players-alive">8</b>/<b id="players-total">8</b></strong></div>
+                <div class="round-bar__phase"><span>Сейчас</span><strong id="round-phase">Раскрытие карт</strong></div>
+                <button class="button button--quiet host-only" id="next-phase" type="button">Следующая фаза →</button>
+            </section>
+
+            <section class="scenario-grid" aria-label="Условия партии">
+                <article class="scenario-card scenario-card--danger" id="catastrophe-card" data-card-type="catastrophe">
+                    <span class="scenario-card__label">Катастрофа</span>
+                    <h2 data-card-title>Данные засекречены</h2>
+                    <p data-card-description>Сценарий появится после начала партии.</p>
+                    <button class="link-button host-only" id="reveal-catastrophe" type="button">Раскрыть</button>
+                </article>
+                <article class="scenario-card" id="bunker-card" data-card-type="bunker">
+                    <span class="scenario-card__label">Бункер</span>
+                    <h2 data-card-title>Объект не исследован</h2>
+                    <p data-card-description>Свойство убежища пока неизвестно.</p>
+                    <button class="link-button host-only" id="reveal-bunker" type="button">Раскрыть</button>
+                </article>
+                <article class="scenario-card" id="threat-card" data-card-type="threat">
+                    <span class="scenario-card__label">Угроза</span>
+                    <h2 data-card-title>Сигнал отсутствует</h2>
+                    <p data-card-description>Периметр остаётся под наблюдением.</p>
+                    <button class="link-button host-only" id="reveal-threat" type="button">Раскрыть</button>
+                </article>
+            </section>
+
+            <section class="mode-view mode-view--player" aria-labelledby="player-mode-title">
+                <div class="player-layout">
+                    <section class="panel dossier-panel" id="character-sheet">
+                        <header class="panel-heading">
+                            <div><span>Личная карта</span><h2 id="player-mode-title">Ваше досье</h2></div>
+                            <span class="private-badge">Видно только вам</span>
+                        </header>
+
+                        <div class="traits-grid" id="character-traits">
+                            <article class="trait-card is-revealed" data-trait="profession">
+                                <span>Профессия</span><strong data-trait-value>Не назначена</strong>
+                                <button type="button" data-action="reveal-trait">Раскрыто</button>
+                            </article>
+                            <article class="trait-card" data-trait="health">
+                                <span>Здоровье</span><strong data-trait-value>Засекречено</strong>
+                                <button type="button" data-action="reveal-trait">Раскрыть</button>
+                            </article>
+                            <article class="trait-card" data-trait="biology">
+                                <span>Биоданные</span><strong data-trait-value>Засекречено</strong>
+                                <button type="button" data-action="reveal-trait">Раскрыть</button>
+                            </article>
+                            <article class="trait-card" data-trait="fact">
+                                <span>Факт</span><strong data-trait-value>Засекречено</strong>
+                                <button type="button" data-action="reveal-trait">Раскрыть</button>
+                            </article>
+                            <article class="trait-card" data-trait="hobby">
+                                <span>Хобби</span><strong data-trait-value>Засекречено</strong>
+                                <button type="button" data-action="reveal-trait">Раскрыть</button>
+                            </article>
+                            <article class="trait-card" data-trait="baggage">
+                                <span>Багаж</span><strong data-trait-value>Засекречено</strong>
+                                <button type="button" data-action="reveal-trait">Раскрыть</button>
+                            </article>
+                            <article class="trait-card trait-card--special" data-trait="special">
+                                <span>Особая карта</span><strong data-trait-value>Засекречено</strong>
+                                <button type="button" data-action="play-special">Разыграть</button>
+                            </article>
+                        </div>
+                    </section>
+
+                    <aside class="player-aside">
+                        <section class="panel turn-panel">
+                            <span>Ваш ход</span>
+                            <h2>Раскройте одну характеристику</h2>
+                            <p>После этого передайте ход следующему участнику.</p>
+                            <button class="button button--primary" id="finish-turn" type="button">Завершить ход</button>
+                        </section>
+                        <section class="panel compact-roster" aria-labelledby="player-roster-title">
+                            <header class="panel-heading"><div><span>Группа</span><h2 id="player-roster-title">Участники</h2></div></header>
+                            <div id="player-roster">
+                                <p><b>Игрок 1</b><span>Ходит сейчас</span></p>
+                                <p><b>Игрок 2</b><span>В игре</span></p>
+                                <p><b>Игрок 3</b><span>В игре</span></p>
+                                <p><b>Игрок 4</b><span>В игре</span></p>
+                            </div>
+                        </section>
+                    </aside>
+                </div>
+            </section>
+
+            <section class="mode-view mode-view--host" aria-labelledby="host-mode-title">
+                <section class="panel setup-panel" id="setup-panel">
+                    <header class="panel-heading">
+                        <div><span>Новая партия</span><h2 id="host-mode-title">Настройки ведущего</h2></div>
+                        <p>Основные параметры без лишних правил на экране.</p>
+                    </header>
+                    <div class="setup-grid">
+                        <label><span>Игроков</span><select id="player-count" name="playerCount"><option>6</option><option>7</option><option selected>8</option><option>9</option><option>10</option><option>11</option><option>12</option><option>13</option><option>14</option><option>15</option></select></label>
+                        <label><span>Мест</span><select id="bunker-capacity" name="bunkerCapacity"><option>3</option><option selected>4</option><option>5</option><option>6</option><option>7</option></select></label>
+                        <label class="setup-grid__name"><span>Имя ведущего</span><input id="host-name" name="hostName" value="Ведущий" autocomplete="nickname"></label>
+                        <button class="button button--primary" id="start-game" type="button">Начать игру</button>
+                        <label class="host-play-toggle" for="host-plays">
+                            <input id="host-plays" name="hostPlays" type="checkbox">
+                            <span class="host-play-toggle__control" aria-hidden="true"></span>
+                            <span><strong>Ведущий тоже играет</strong><small>Занимает одно из выбранных мест, получает досье и голос.</small></span>
+                        </label>
+                    </div>
+                </section>
+
+                <details class="panel host-dossier" id="host-dossier">
+                    <summary>
+                        <span><small>Личная карта ведущего</small><strong>Моё досье</strong></span>
+                        <b>Открыть карту</b>
+                    </summary>
+                    <div class="host-dossier__body">
+                        <p>Эту часть экрана видит только ведущий. Характеристики будут выданы вместе с остальными игроками.</p>
+                        <div class="host-traits" id="host-character-traits">
+                            <span><small>Профессия</small><strong data-host-trait="profession">Засекречено</strong></span>
+                            <span><small>Здоровье</small><strong data-host-trait="health">Засекречено</strong></span>
+                            <span><small>Биоданные</small><strong data-host-trait="biology">Засекречено</strong></span>
+                            <span><small>Особая карта</small><strong data-host-trait="special">Засекречено</strong></span>
+                        </div>
+                        <div class="host-player-actions">
+                            <button class="button button--primary" id="host-reveal-trait" type="button">Раскрыть характеристику</button>
+                            <button class="button button--quiet" id="host-finish-turn" type="button">Завершить свой ход</button>
+                        </div>
+                    </div>
+                </details>
+
+                <div class="host-layout">
+                    <section class="panel host-players" aria-labelledby="host-players-title">
+                        <header class="panel-heading"><div><span>Состав</span><h2 id="host-players-title">Участники</h2></div><span class="soft-badge" id="active-player-label">Ход: Игрок 1</span></header>
+                        <div class="players-list" id="players-list">
+                            <article class="player-row is-active" data-player-id="1" data-player-status="active"><b>01</b><span><strong>Игрок 1</strong><small>2 карты открыто</small></span><em>Ход</em></article>
+                            <article class="player-row" data-player-id="2" data-player-status="active"><b>02</b><span><strong>Игрок 2</strong><small>1 карта открыта</small></span><em>В игре</em></article>
+                            <article class="player-row" data-player-id="3" data-player-status="active"><b>03</b><span><strong>Игрок 3</strong><small>2 карты открыто</small></span><em>В игре</em></article>
+                            <article class="player-row" data-player-id="4" data-player-status="active"><b>04</b><span><strong>Игрок 4</strong><small>1 карта открыта</small></span><em>В игре</em></article>
+                            <article class="player-row host-player-row" data-player-id="host" data-player-status="active"><b>В</b><span><strong>Ведущий</strong><small>Личное досье выдано</small></span><em>Играет</em></article>
+                            <article class="player-row is-exiled" data-player-id="5" data-player-status="exiled"><b>05</b><span><strong>Игрок 5</strong><small>Протокол закрыт</small></span><em>Изгнан</em></article>
+                        </div>
+                    </section>
+
+                    <div class="host-side">
+                        <section class="panel vote-panel" id="vote-panel" aria-labelledby="vote-title">
+                            <header class="panel-heading"><div><span>Раунд 1</span><h2 id="vote-title">Голосование</h2></div></header>
+                            <p id="vote-status">Выберите кандидата на изгнание.</p>
+                            <div class="vote-list" id="vote-list">
+                                <button type="button" data-vote-target="2"><span>Игрок 2</span><b>0</b></button>
+                                <button type="button" data-vote-target="3"><span>Игрок 3</span><b>0</b></button>
+                                <button type="button" data-vote-target="4"><span>Игрок 4</span><b>0</b></button>
+                                <button class="host-vote-target" type="button" data-vote-target="host"><span>Ведущий</span><b>0</b></button>
+                            </div>
+                            <button class="button button--wine" id="confirm-vote" type="button" disabled>Подтвердить</button>
+                        </section>
+
+                        <section class="panel log-panel" aria-labelledby="log-title">
+                            <header class="panel-heading"><div><span>События</span><h2 id="log-title">Журнал партии</h2></div></header>
+                            <ol id="event-log" aria-live="polite"><li><time>00:00</time> Протокол готов к запуску.</li><li><time>00:01</time> Ожидаются участники.</li></ol>
+                        </section>
+                    </div>
+                </div>
+            </section>
+
+            <template id="player-card-template"><article class="player-row" data-player-id="" data-player-status="active"><b></b><span><strong></strong><small>Карты не раскрыты</small></span><em>В игре</em></article></template>
+            <template id="log-entry-template"><li><time></time> <span></span></li></template>
+        </section>
+    </main>
+
+</body>
+</html>

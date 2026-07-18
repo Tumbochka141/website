@@ -1,0 +1,396 @@
+/* Gentle structural refresh. The original sidebar + gallery composition stays intact. */
+
+body {
+    grid-template-columns: 16px minmax(0, 1fr) 16px;
+    grid-template-rows: 14px minmax(0, 1fr) 30px;
+}
+
+body.is-night {
+    --page-start: #123b5e;
+    --page-end: #123b5e;
+    --content-start: #25658f;
+    --content-end: #25658f;
+    --sidebar-start: #4a1322;
+    --sidebar-end: #3b101c;
+    background: #123b5e;
+}
+
+body::before {
+    width: 310px;
+    background-color: var(--sidebar-start);
+    background-image: repeating-linear-gradient(135deg, transparent 0 18px, rgba(255, 255, 255, .014) 18px 20px);
+}
+
+.main {
+    grid-template-columns: 285px minmax(0, 1fr);
+    grid-template-rows: 82px auto;
+    column-gap: 18px;
+    row-gap: 18px;
+}
+
+.sidebar-text-box {
+    width: 100%;
+    height: calc(100vh - 28px);
+    min-height: 720px;
+    padding: 22px 18px;
+    transform: none;
+    background: repeating-linear-gradient(135deg, transparent 0 18px, rgba(255, 255, 255, .018) 18px 20px);
+    border-color: rgba(214, 183, 81, .7);
+    border-radius: 13px;
+    box-shadow: 0 9px 0 rgba(7, 28, 46, .14);
+}
+
+.sidebar-kicker { letter-spacing: .07em; }
+.sidebar-about > p:last-child { line-height: 1.55; }
+.discord-card { background: rgba(7, 28, 46, .18); }
+.sidebar-server-link { box-shadow: none; }
+
+.header {
+    min-height: 82px;
+    display: grid;
+    grid-template-columns: auto auto minmax(90px, 1fr) auto;
+    align-items: center;
+    gap: 18px;
+    margin: 0;
+    width: 100%;
+    padding: 0 18px;
+    background: #f5efe4;
+    border: 1px solid rgba(255, 232, 120, .86);
+    border-radius: 15px;
+    box-shadow: 0 9px 0 rgba(7, 28, 46, .14);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+
+.header::before,
+.header::after {
+    content: "";
+    position: absolute;
+    top: 9px;
+    width: 17px;
+    height: 17px;
+    pointer-events: none;
+    border-top: 1px solid rgba(214, 183, 81, .75);
+}
+
+.header::before { left: 9px; border-left: 1px solid rgba(214, 183, 81, .75); }
+.header::after { right: 9px; border-right: 1px solid rgba(214, 183, 81, .75); }
+
+body.is-night .header,
+body:not(.is-night) .header {
+    background: #f5efe4;
+    border-color: rgba(255, 232, 120, .86);
+    border-bottom-color: rgba(255, 232, 120, .86);
+    box-shadow: 0 9px 0 rgba(7, 28, 46, .14);
+}
+
+.header-section {
+    grid-column: 1;
+    min-width: 92px;
+    display: grid;
+    gap: 3px;
+    padding-right: 18px;
+    border-right: 1px solid rgba(74, 19, 34, .16);
+}
+
+.header-section span {
+    color: #8c7274;
+    font-size: .52rem;
+    font-weight: 800;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+}
+
+.header-section strong {
+    color: #4a1322;
+    font-family: var(--font-display);
+    font-size: .92rem;
+    line-height: 1;
+    letter-spacing: -.025em;
+}
+
+.header .nav {
+    position: relative;
+    grid-column: 2;
+    justify-self: start;
+    gap: 4px;
+    padding: 4px;
+    background: #eadfd5;
+    border: 1px solid rgba(74, 19, 34, .16);
+    border-radius: 10px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .55);
+}
+.header-ornament { grid-column: 3; min-width: 70px; display: flex; align-items: center; padding-inline: clamp(12px, 2.5vw, 34px); opacity: .85; }
+.header-ornament img { width: 100%; height: 34px; display: block; }
+.header .actions { grid-column: 4; justify-self: end; gap: 15px; }
+
+body .header .nav a {
+    min-height: 42px;
+    padding-inline: 15px;
+    overflow: visible;
+    border-radius: 6px;
+    font-size: .67rem;
+    letter-spacing: .12em;
+    opacity: .68;
+    transition: color .16s ease, background-color .16s ease, transform .16s ease, opacity .16s ease;
+}
+
+.header .nav a::after {
+    right: auto;
+    bottom: -7px;
+    left: 50%;
+    width: 7px;
+    height: 7px;
+    border-radius: 1px;
+    background: #d6b751;
+    box-shadow: none;
+    transform: translateX(-50%) rotate(45deg) scale(0);
+}
+
+body .header .nav a:hover,
+body .header .nav a:focus-visible {
+    color: #4a1322;
+    background-color: rgba(255, 255, 255, .42);
+    opacity: 1;
+    transform: translateY(-1px);
+}
+
+body .header .nav a[aria-current="page"] {
+    color: #f5efe4;
+    background-color: #4a1322;
+    background-image:
+        linear-gradient(#d6b751, #d6b751),
+        linear-gradient(#d6b751, #d6b751),
+        linear-gradient(#d6b751, #d6b751),
+        linear-gradient(#d6b751, #d6b751),
+        linear-gradient(#d6b751, #d6b751),
+        linear-gradient(#d6b751, #d6b751),
+        linear-gradient(#d6b751, #d6b751),
+        linear-gradient(#d6b751, #d6b751);
+    background-position:
+        5px 5px, 5px 5px,
+        right 5px top 5px, right 5px top 5px,
+        left 5px bottom 5px, left 5px bottom 5px,
+        right 5px bottom 5px, right 5px bottom 5px;
+    background-size:
+        8px 1px, 1px 8px,
+        8px 1px, 1px 8px,
+        8px 1px, 1px 8px,
+        8px 1px, 1px 8px;
+    background-repeat: no-repeat;
+    box-shadow: 0 4px 0 rgba(74, 19, 34, .14);
+    opacity: 1;
+}
+
+.header .nav a[aria-current="page"]::after { transform: translateX(-50%) rotate(45deg) scale(1); }
+.discord-profile {
+    min-height: 44px;
+    gap: 8px;
+    padding: 5px 5px 5px 8px;
+    background: #eadfd5;
+    border-color: rgba(74, 19, 34, .18);
+    border-radius: 9px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .48);
+}
+
+.discord-profile__mark {
+    width: 25px;
+    height: 25px;
+    display: grid;
+    place-items: center;
+    flex: 0 0 25px;
+    color: var(--color-accent);
+    background: #4a1322;
+    border-radius: 6px;
+    font-size: .52rem;
+}
+
+.discord-profile.is-connected .discord-profile__mark { display: none; }
+.discord-profile__copy { min-width: 50px; display: grid; gap: 1px; }
+.discord-profile__copy small { color: #9a7f80; font-size: .44rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.discord-profile__name { color: #4a1322; font-size: .58rem; }
+.discord-profile__button { min-height: 32px; padding-inline: 10px; color: #f5efe4; background: #4a1322; border-radius: 6px; }
+.discord-profile__button:hover { background: #6a2638; }
+.discord-profile__avatar { width: 30px; height: 30px; flex-basis: 30px; border-color: #d6b751; }
+
+.day-night-toggle { width: 9.45rem; transform: translateY(3px); }
+.day-night-toggle__sky {
+    height: 2.85rem;
+    border-color: rgba(214, 183, 81, .5);
+    border-radius: 9px;
+    box-shadow: 0 4px 0 rgba(7, 28, 46, .13);
+}
+.day-night-toggle__sky::before,
+.day-night-toggle__sky::after {
+    content: "";
+    position: absolute;
+    z-index: 9;
+    top: 5px;
+    width: 9px;
+    height: 9px;
+    pointer-events: none;
+    border-top: 1px solid rgba(214, 183, 81, .78);
+}
+.day-night-toggle__sky::before { left: 5px; border-left: 1px solid rgba(214, 183, 81, .78); }
+.day-night-toggle__sky::after { right: 5px; border-right: 1px solid rgba(214, 183, 81, .78); }
+.day-night-toggle:hover .day-night-toggle__sky { box-shadow: 0 6px 0 rgba(7, 28, 46, .17); }
+.day-night-toggle:focus-visible { border-radius: 10px; }
+
+.main__content {
+    align-self: start;
+    overflow: visible;
+    padding: 18px;
+    background: #25658f;
+    border: 1px solid rgba(245, 239, 228, .12);
+    border-radius: 18px;
+    box-shadow: 0 12px 0 rgba(7, 28, 46, .13);
+}
+
+.main__content:hover { transform: none; box-shadow: 0 12px 0 rgba(7, 28, 46, .13); }
+
+.gallery-grid {
+    max-width: 960px;
+    aspect-ratio: 4 / 2.75;
+}
+
+.gallery-item {
+    border-color: rgba(214, 183, 81, .32);
+    border-radius: 10px;
+    box-shadow: 0 7px 0 rgba(7, 28, 46, .18);
+}
+
+.gallery-item.active { --scale: 1.025; }
+.gallery-item:hover, .gallery-item:focus-visible { box-shadow: 0 10px 0 rgba(7, 28, 46, .22); }
+.gallery-item--link .gallery-item-image-wrap {
+    position: relative;
+    inset: auto;
+    height: auto;
+    aspect-ratio: 16 / 9;
+    background: #0b2942;
+    border-bottom: 1px solid rgba(214, 183, 81, .18);
+}
+.gallery-item--link .gallery-img { object-fit: contain; }
+.gallery-caption,
+.gallery-item--link .gallery-caption {
+    background-color: #4a1322;
+    background-image: repeating-linear-gradient(135deg, transparent 0 18px, rgba(255,255,255,.018) 18px 20px);
+    backdrop-filter: none;
+}
+
+.gallery-item--link .gallery-caption {
+    position: relative;
+    inset: auto;
+    padding: 1rem 1.2rem;
+    background-color: #4a1322;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+body:not(.is-night) .main__content { background: #4c8db4; }
+body:not(.is-night) .discord-profile {
+    background: #f2e3b8;
+    border-color: rgba(111, 81, 72, .22);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .72);
+}
+body:not(.is-night) .discord-profile__copy small { color: #876d71; }
+body:not(.is-night) .discord-profile__button { color: #f5efe4; background: #6a2638; }
+body .sidebar-discord-section .discord-profile {
+    width: calc(100% - 12px);
+    max-width: none;
+    min-height: 58px;
+    margin: 15px auto 0;
+    padding: 8px;
+    box-sizing: border-box;
+    color: #f5efe4;
+    background: rgba(7, 28, 46, .28);
+    border-color: rgba(214, 183, 81, .34);
+    border-radius: 9px;
+    box-shadow: none;
+}
+body .sidebar-discord-section .discord-profile__copy { min-width: 0; flex: 1; }
+body .sidebar-discord-section .discord-profile__copy small { color: #d6b751; }
+body .sidebar-discord-section .discord-profile__name { max-width: 105px; color: #f5efe4; font-size: .62rem; }
+body .sidebar-discord-section .discord-profile__mark { color: #4a1322; background: #ffe878; }
+body .sidebar-discord-section .discord-profile__button { color: #4a1322; background: #ffe878; }
+body .sidebar-discord-section .discord-profile__button:hover { background: #f5efe4; }
+body .sidebar-discord-section .discord-profile__logout { color: #f5efe4; background: #6a2638; }
+body .sidebar-discord-section + .sidebar-server-link { margin-top: 1.05rem; }
+body:not(.is-night) .gallery-caption,
+body:not(.is-night) .gallery-item--link .gallery-caption {
+    background-color: #ead99f;
+    background-image: repeating-linear-gradient(135deg, transparent 0 18px, rgba(255, 255, 255, .12) 18px 20px);
+}
+
+body:not(.is-night) .gallery-caption h4,
+body:not(.is-night) .gallery-item--link .gallery-caption h4 { color: #4a1322; }
+
+body:not(.is-night) .gallery-caption p,
+body:not(.is-night) .gallery-item--link .gallery-caption p { color: #6f5148; }
+
+@media (max-width: 980px) {
+    html { background: #123b5e; }
+    body {
+        grid-template-columns: 0 minmax(0, 1fr) 0;
+        background: #123b5e;
+    }
+    body:not(.is-night) { background: #4c8db4; }
+    body::before { width: 250px; }
+    .main { grid-template-columns: 225px minmax(0, 1fr); gap: 14px; }
+    .header { grid-template-columns: auto auto 1fr auto; gap: 12px; }
+    .header-section { grid-column: 1; min-width: 82px; padding-right: 12px; }
+    .header .nav { grid-column: 2; justify-self: start; }
+    .header-ornament { grid-column: 3; padding-inline: 8px; opacity: .55; }
+    .header .actions { grid-column: 4; }
+    .discord-profile__copy { display: none; }
+    .gallery-grid { aspect-ratio: 4 / 3; }
+}
+
+@media (max-width: 720px) {
+    body {
+        display: block;
+        height: auto;
+        min-height: 100vh;
+        padding: 10px 11px 28px;
+        background: #123b5e !important;
+    }
+
+    body:not(.is-night) { background: #4c8db4 !important; }
+
+    body::before { display: none; }
+
+    .main {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+    }
+
+    .header { order: 1; min-height: 64px; grid-template-columns: minmax(0, 1fr) 72px; gap: 7px; padding: 7px; overflow: hidden; }
+    .header-section { display: none; }
+    .header .nav { grid-column: 1; width: 100%; min-width: 0; grid-template-columns: repeat(3, minmax(0, 1fr)); justify-self: stretch; gap: 3px; }
+    body .header .nav a { width: auto; min-width: 0; min-height: 46px; justify-content: center; padding-inline: 2px; font-size: .56rem; letter-spacing: .04em; }
+    .header-ornament { display: none; }
+    .header .actions { grid-column: 2; display: flex; width: 72px; justify-self: end; }
+    .day-night-toggle { width: 72px; transform: none; }
+    .day-night-toggle__sky { width: 72px; height: 46px; border-radius: 7px; }
+    .day-night-toggle__label { display: none; }
+
+    .main__content { order: 2; width: 100%; min-width: 0; padding: 8px; overflow: hidden; }
+    .main__sidebar { order: 3; width: 100%; padding: 0; }
+    .sidebar-text-box { width: 100%; height: auto; min-height: 0; padding: 22px 18px; background-color: #4a1322; }
+    .gallery-grid { aspect-ratio: auto; display: grid; grid-template-columns: 1fr; gap: 10px; }
+    .gallery-item, .gallery-item.active { position: relative; inset: auto; width: 100%; max-width: 100%; height: auto; min-height: 0; transform: none; }
+    .gallery-item-image-wrap { width: 100%; aspect-ratio: 16 / 9; }
+    .gallery-caption { min-height: 68px; padding: 11px 10px; }
+    .gallery-item--link .gallery-item-image-wrap { position: relative; }
+    .gallery-item:hover, .gallery-item:focus-visible { transform: translateY(-2px); }
+}
+
+@media (max-width: 390px) {
+    body { padding-inline: 7px; }
+    .header { grid-template-columns: minmax(0, 1fr) 66px; gap: 5px; }
+    .header .actions,
+    .day-night-toggle,
+    .day-night-toggle__sky { width: 66px; }
+    body .header .nav a { font-size: .52rem; }
+}

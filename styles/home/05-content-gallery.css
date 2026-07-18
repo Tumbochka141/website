@@ -1,0 +1,232 @@
+.main__sidebar-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.main__sidebar-link {
+    display: block;
+    padding: 0.6rem 0.8rem;
+    border-radius: 0.4rem;
+    color: var(--color-text);
+    text-decoration: none;
+    font-weight: 600;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.main__sidebar-link:hover,
+.main__sidebar-link:focus {
+    color: var(--color-accent);
+    background-color: var(--link-hover);
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+}
+
+.main__sidebar-link--active {
+    color: var(--color-accent);
+    background-color: transparent;
+    border-left: 4px solid #ffdd57;
+}
+
+.main__sidebar-link:hover,
+.main__sidebar-link:active {
+    color: #ffdd57;
+    background-color: rgba(255, 221, 87, 0.12);
+}
+
+.main__content {
+    grid-column: 2;
+    grid-row: 2;
+    min-width: 0;
+    overflow: auto;
+    border: 1px solid color-mix(in srgb, var(--color-border) 55%, transparent);
+    border-radius: 14px;
+    padding: clamp(1.5rem, 2.2vw, 2.25rem);
+    color: var(--color-text);
+    box-shadow: 0 16px 36px rgba(4, 22, 38, 0.18);
+    background: var(--content-bg);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.main__content:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 18px 40px rgba(4, 22, 38, 0.22);
+}
+
+.main__content h1,
+.content-title {
+    font-size: 2.2rem;
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    color: var(--color-accent); /* Р—РѕР»РѕС‚РёСЃС‚Рѕ-Р¶РµР»С‚С‹Р№ Р·Р°РіРѕР»РѕРІРѕРє */
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    letter-spacing: -0.5px;
+}
+
+/* РЎРµС‚РєР° РіР°Р»РµСЂРµРё */
+.gallery-grid {
+    position: relative;
+    width: 100%;
+    max-width: 900px;
+    aspect-ratio: 4/3;
+    margin: 0 auto;
+}
+
+/* РљР»РµС‚РєР° / СЌР»РµРјРµРЅС‚ РіР°Р»РµСЂРµРё */
+.gallery-item {
+    position: absolute;
+    width: calc(50% - 8px);
+    height: calc(50% - 8px);
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.12);
+    background-color: rgba(16,58,96,0.4);
+    box-shadow: 0 10px 22px rgba(4, 20, 34, 0.18);
+    color: inherit;
+    text-decoration: none;
+    --scale: 1;
+    transform: scale(var(--scale));
+    transition: left 0.6s ease-in-out,
+                top 0.6s ease-in-out,
+                transform 0.3s ease,
+                box-shadow 0.3s ease-in-out,
+                border-color 0.3s ease-in-out;
+}
+.pos1 { left: 0; top: 0; }
+.pos2 { left: calc(50% + 8px); top: 0; }
+.pos3 { left: calc(50% + 8px); top: calc(50% + 8px); }
+.pos4 { left: 0; top: calc(50% + 8px); }
+.gallery-item.active {
+    --scale: 1.05;
+}
+.gallery-item:hover,
+.gallery-item:focus-visible {
+    transform: translateY(-4px) scale(var(--scale));
+    box-shadow: 0 16px 30px rgba(4, 20, 34, 0.26);
+    border-color: rgba(255, 221, 87, 0.42);
+    z-index: 10;
+}
+
+.gallery-item:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 3px;
+}
+
+/* РћР±РµСЂС‚РєР° РґР»СЏ РєР°СЂС‚РёРЅРєРё, С‡С‚РѕР±С‹ Р·Р°РґР°С‚СЊ РїСЂРѕРїРѕСЂС†РёРё */
+.gallery-item-image-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9; /* Р‘РѕР»РµРµ РІС‹С‚СЏРЅСѓС‚С‹Рµ Рё РєРѕРјРїР°РєС‚РЅС‹Рµ РїСЂРѕРїРѕСЂС†РёРё */
+    overflow: hidden;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* РЎР°РјР° РєР°СЂС‚РёРЅРєР° */
+.gallery-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.5s ease;
+}
+
+/* The catalog card uses a finished 4:3 illustration as the whole card face. */
+.gallery-item--link .gallery-item-image-wrap {
+    position: absolute;
+    inset: 0;
+    height: 100%;
+    aspect-ratio: auto;
+    border-bottom: 0;
+}
+
+.gallery-item--link .gallery-caption {
+    position: absolute;
+    right: 12px;
+    bottom: 12px;
+    left: 12px;
+    z-index: 1;
+    padding: 0.65rem 1rem 0.7rem;
+    border: 1px solid rgba(255, 232, 120, 0.38);
+    border-radius: 9px;
+    background: rgba(11, 41, 66, 0.86);
+    box-shadow: 0 8px 18px rgba(4, 20, 34, 0.2);
+    backdrop-filter: blur(4px);
+}
+
+.gallery-item--link:hover .gallery-caption,
+.gallery-item--link:focus-visible .gallery-caption {
+    background: rgba(59, 16, 28, 0.9);
+}
+
+/* РРЅС‚РµСЂР°РєС‚РёРІРЅС‹Р№ СЌС„С„РµРєС‚: РїСЂРё РЅР°РІРµРґРµРЅРёРё РїСЂРѕСЃС‚Рѕ Р»РµРіРєРѕРµ СѓРІРµР»РёС‡РµРЅРёРµ */
+.gallery-item:hover .gallery-img,
+.gallery-item:focus-visible .gallery-img {
+    transform: scale(1.05);
+}
+
+/* РџРѕРґСЂРёСЃСѓРЅРѕС‡РЅР°СЏ РїРѕРґРїРёСЃСЊ РЎРўР РћР“Рћ РџРћР” Р¤РћРўРћР“Р РђР¤РР•Р™ */
+.gallery-caption {
+    padding: 1rem 1.2rem;
+    background-color: rgba(14, 51, 82, 0.78); /* РџРѕР»СѓРїСЂРѕР·СЂР°С‡РЅС‹Р№ С‚РµРјРЅРѕ-СЃРёРЅРёР№ С„РѕРЅ РїРѕРґРїРёСЃРё */
+    text-align: center; /* Р¦РµРЅС‚СЂРёСЂСѓРµРј РЅР°Р·РІР°РЅРёСЏ Рё РѕРїРёСЃР°РЅРёСЏ РїРѕ С†РµРЅС‚СЂСѓ СЃС‚СЂРѕРєРё */
+    transition: background-color 0.3s ease;
+}
+
+/* РџР»Р°РІРЅС‹Р№ РїРµСЂРµС…РѕРґ С„РѕРЅР° РїРѕРґРїРёСЃРё РІ Р±Р»Р°РіРѕСЂРѕРґРЅС‹Р№ Р±РѕСЂРґРѕРІС‹Р№ С†РІРµС‚ СЃР°Р№РґР±Р°СЂР° РїСЂРё С…РѕРІРµСЂРµ РІСЃРµР№ РєР°СЂС‚РѕС‡РєРё */
+.gallery-item:hover .gallery-caption,
+.gallery-item:focus-visible .gallery-caption {
+    background-color: rgba(59, 16, 28, 0.85);
+}
+
+.gallery-caption h4 {
+    margin: 0 0 0.2rem 0;
+    font-size: 1rem; /* Р§СѓС‚СЊ СѓРјРµРЅСЊС€РёР»Рё С€СЂРёС„С‚ */
+    font-weight: 600;
+    color: #ffffff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.gallery-caption p {
+    margin: 0;
+    font-size: 0.8rem; /* Р‘РѕР»РµРµ РґРµР»РёРєР°С‚РЅС‹Р№ СЂР°Р·РјРµСЂ */
+    color: rgba(255, 255, 255, 0.6);
+}
+
+body:not(.is-night) .gallery-item {
+    background-color: #fffaf2;
+    border-color: rgba(92, 26, 26, .18);
+    box-shadow: 0 10px 22px rgba(72, 48, 36, .16);
+}
+
+body:not(.is-night) .gallery-item-image-wrap {
+    border-bottom-color: rgba(92, 26, 26, .14);
+}
+
+body:not(.is-night) .gallery-caption {
+    background-color: #f5f0e8;
+}
+
+body:not(.is-night) .gallery-item--link .gallery-caption {
+    background: rgba(245, 240, 232, 0.9);
+}
+
+body:not(.is-night) .gallery-item:hover .gallery-caption,
+body:not(.is-night) .gallery-item:focus-visible .gallery-caption {
+    background-color: #eee4d6;
+}
+
+body:not(.is-night) .gallery-item:hover,
+body:not(.is-night) .gallery-item:focus-visible {
+    border-color: rgba(92, 26, 26, .42);
+    box-shadow: 0 16px 30px rgba(72, 48, 36, .24);
+}
+
+body:not(.is-night) .gallery-caption h4 {
+    color: #1a0a0a;
+    text-shadow: none;
+}
+
+body:not(.is-night) .gallery-caption p {
+    color: #554744;
+}
+

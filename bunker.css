@@ -1,0 +1,9 @@
+/* Точка подключения стилей Бункера. */
+@import url("styles/bunker/01-foundation.css");
+@import url("styles/bunker/02-shell-decor.css");
+@import url("styles/bunker/03-components.css");
+@import url("styles/bunker/04-player.css");
+@import url("styles/bunker/05-host.css");
+@import url("styles/bunker/06-responsive.css");
+@import url("styles/bunker/07-mobile-polish.css");
+@import url("styles/bunker/08-industrial-backdrop.css");

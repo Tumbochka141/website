@@ -1,0 +1,120 @@
+/* Typography refresh: readable body text with a more characterful display face. */
+:root {
+    --font-body: "Manrope", system-ui, sans-serif;
+    --font-display: "Unbounded", "Trebuchet MS", sans-serif;
+}
+
+html,
+body {
+    font-family: var(--font-body);
+}
+
+.sidebar-kicker,
+.sidebar-label,
+.sidebar-server-link,
+.header .nav a,
+.day-night-toggle__label,
+.gallery-caption h4 {
+    font-family: var(--font-display);
+}
+
+.sidebar-kicker {
+    font-size: clamp(.9rem, 1.15vw, 1.18rem);
+    letter-spacing: .08em;
+}
+
+.sidebar-label,
+.sidebar-server-link {
+    font-size: .65rem;
+    letter-spacing: .055em;
+}
+
+.header .nav a {
+    font-size: .74rem;
+    letter-spacing: .025em;
+}
+
+.gallery-caption h4 {
+    font-size: .75rem;
+    letter-spacing: .015em;
+}
+
+.gallery-caption p {
+    font-size: .74rem;
+    font-weight: 500;
+}
+
+/* Catalog-style navigation accent for the main header. */
+.header .nav {
+    gap: clamp(.7rem, 1.2vw, 1.15rem);
+}
+
+body .header .nav a {
+    position: relative;
+    min-height: 3rem;
+    padding: 0 1.05rem;
+    overflow: hidden;
+    border-radius: 0;
+    font-size: clamp(.82rem, .92vw, .94rem);
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: .065em;
+    text-transform: uppercase;
+    background-color: transparent;
+    box-shadow: none;
+    opacity: .62;
+    transition: color .22s ease, opacity .22s ease, transform .22s ease;
+}
+
+.header .nav a::after {
+    content: "";
+    position: absolute;
+    right: 1.05rem;
+    bottom: 0;
+    left: 1.05rem;
+    height: 3px;
+    border-radius: 999px;
+    background: var(--color-accent);
+    box-shadow: 0 0 10px rgba(255, 221, 87, .45);
+    transform: scaleX(0);
+    transform-origin: center;
+    transition: transform .24s cubic-bezier(.22, 1, .36, 1);
+}
+
+body .header .nav a:hover,
+body .header .nav a:focus-visible,
+body .header .nav a[aria-current="page"] {
+    color: var(--color-primary);
+    background-color: transparent;
+    box-shadow: none;
+    opacity: 1;
+    transform: translateY(-1px);
+}
+
+.header .nav a:hover::after,
+.header .nav a:focus-visible::after,
+.header .nav a[aria-current="page"]::after {
+    transform: scaleX(1);
+}
+
+.header .nav a:focus-visible {
+    outline: 2px solid rgba(255, 221, 87, .72);
+    outline-offset: 3px;
+}
+
+@media (max-width: 720px) {
+    .header .nav {
+        gap: .15rem;
+    }
+
+    body .header .nav a {
+        min-height: 2.6rem;
+        padding: 0 .55rem;
+        font-size: .72rem;
+    }
+
+    .header .nav a::after {
+        right: .55rem;
+        left: .55rem;
+    }
+}
