@@ -5,6 +5,28 @@
 @media (max-width: 720px) {
     html { background: #123b5e; }
 
+    /*
+     * Theme changes used to animate every large surface (including registered
+     * gradient custom properties and each gallery card). On mobile that causes
+     * a full-page repaint for more than a second. Keep the scene animation in
+     * the switch, but make the page palette update immediately.
+     */
+    html,
+    body,
+    body::before,
+    .header,
+    .header .logo,
+    .header .logo span,
+    .header .nav a,
+    .main__content,
+    .gallery-item,
+    .gallery-item-image-wrap,
+    .gallery-caption,
+    .gallery-caption h4,
+    .gallery-caption p {
+        transition: none;
+    }
+
     body,
     body.is-night {
         padding: 7px 7px 24px;
@@ -124,9 +146,34 @@
         padding: 4px;
         border-radius: 50%;
         box-shadow: 0 8px 0 rgba(7, 28, 46, .18);
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
     }
     .mobile-theme-toggle .day-night-toggle__sky { width: 112px; height: 112px; flex-basis: 112px; border-radius: 50%; }
     .mobile-theme-toggle .day-night-toggle__label { display: none; }
+
+    .mobile-theme-toggle .day-night-toggle__sky {
+        contain: layout paint;
+        isolation: isolate;
+        transform: translateZ(0);
+        transition: background-color .24s ease;
+    }
+
+    .mobile-theme-toggle .day-night-toggle__moon,
+    .mobile-theme-toggle .day-night-toggle__main-sun,
+    .mobile-theme-toggle .day-night-toggle__cloud,
+    .mobile-theme-toggle .day-night-toggle__orbit,
+    .mobile-theme-toggle .day-night-toggle__owl,
+    .mobile-theme-toggle .day-night-toggle__sleeping-owl,
+    .mobile-theme-toggle .day-night-toggle__sleep {
+        transition-duration: .24s;
+        will-change: transform, opacity;
+    }
+
+    .mobile-theme-toggle .day-night-toggle__cloud,
+    .mobile-theme-toggle .day-night-toggle__sleep {
+        animation: none;
+    }
 
     .gallery-grid {
         aspect-ratio: auto;
