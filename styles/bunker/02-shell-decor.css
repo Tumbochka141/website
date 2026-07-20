@@ -2,7 +2,7 @@
 .bunker-page::before, .bunker-page::after { content: ""; position: absolute; width: 24px; height: 24px; pointer-events: none; }
 .bunker-page::before { top: 10px; left: 10px; border-top: 2px solid var(--gold); border-left: 2px solid var(--gold); }
 .bunker-page::after { right: 10px; bottom: 10px; border-right: 2px solid var(--gold); border-bottom: 2px solid var(--gold); }
-.game-status { flex: 0 0 auto; display: flex; align-items: center; gap: 9px; padding: 10px 13px; color: var(--cream-muted); background: rgba(7, 28, 46, .65); border: 1px solid var(--line); border-radius: 999px; font-size: .7rem; font-weight: 800; }
+.game-status { flex: 0 0 auto; display: flex; align-items: center; gap: 9px; padding: 9px 11px; color: var(--cream-muted); background: rgba(7, 28, 46, .42); border: 1px solid var(--line); border-radius: 8px; font-size: .7rem; font-weight: 800; }
 .game-status i { width: 8px; height: 8px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 12px rgba(214, 183, 81, .7); }
 
 .mode-shell { position: relative; z-index: 1; display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 14px; align-items: stretch; }
@@ -24,6 +24,9 @@
 .bunker-rivets i { width: 7px; height: 7px; border: 1px solid rgba(255, 232, 120, .48); border-radius: 50%; background: #174a70; box-shadow: inset 1px 1px 0 rgba(255, 255, 255, .12), 1px 2px 0 rgba(7, 28, 46, .2); }
 .round-bar::after { content: ""; position: absolute; right: 12px; bottom: 11px; width: 44px; height: 5px; background: repeating-linear-gradient(135deg, var(--gold) 0 6px, transparent 6px 11px); opacity: .5; }
 .round-bar { position: relative; }
+body.is-warm .bunker-page { background-color: #566f74; background-image: radial-gradient(circle at 78% 0, rgba(255, 205, 101, .2), transparent 38%), linear-gradient(90deg, rgba(16, 28, 37, .13) 1px, transparent 1px), linear-gradient(rgba(16, 28, 37, .11) 1px, transparent 1px); box-shadow: 0 18px 0 rgba(16, 28, 37, .17); }
+body.is-warm .bunker-conduit i,
+body.is-warm .bunker-rivets i { background: #49636b; }
 .mode-input { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
 .mode-tabs { display: grid; grid-template-columns: 1fr 1fr; padding: 3px; background: #eadfd5; border: 1px solid rgba(74, 19, 34, .15); border-radius: 999px; }
 .mode-tabs label { padding: 8px 12px; color: #876d71; border-radius: 999px; text-align: center; transition: background .16s ease, color .16s ease; }

@@ -64,7 +64,7 @@ function bindControls() {
         localStorage.setItem(PLAYER_NAME_STORAGE_KEY, value);
     });
     ui.name.addEventListener("change", () => {
-        if (!ui.name.value.trim()) ui.name.value = "Совёнок";
+        if (!ui.name.value.trim()) ui.name.value = "Игрок";
         localStorage.setItem(PLAYER_NAME_STORAGE_KEY, ui.name.value.trim().slice(0, 24));
     });
 

@@ -15,6 +15,11 @@
 .trait-card.is-revealed { background-color: var(--wine); background-image: repeating-linear-gradient(135deg, transparent 0 18px, rgba(255, 255, 255, .018) 18px 20px); }
 .trait-card.is-revealed strong { color: var(--cream); }
 .trait-card--special { grid-column: 1 / -1; min-height: 92px; background: rgba(214, 183, 81, .035); }
+.special-controls { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) auto; gap: 8px; margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(214, 183, 81, .16); }
+.special-controls p { grid-column: 1 / -1; margin: 0 0 3px; color: var(--cream-muted); font-size: .68rem; }
+.special-controls select { min-width: 0; min-height: 40px; padding: 7px 9px; color: var(--cream); background: var(--navy-950); border: 1px solid rgba(214, 183, 81, .3); border-radius: 7px; }
+.shared-secrets { display: grid; gap: 7px; margin-top: 13px; padding: 12px; color: var(--cream-muted); background: rgba(214, 183, 81, .05); border: 1px solid rgba(214, 183, 81, .18); border-radius: 8px; font-size: .68rem; }
+.shared-secrets strong { color: var(--gold-bright); }
 
 .player-aside, .host-side { display: grid; gap: 12px; }
 .turn-panel { background-color: var(--wine); background-image: repeating-linear-gradient(135deg, transparent 0 18px, rgba(255, 255, 255, .018) 18px 20px); }
@@ -22,6 +27,8 @@
 .turn-panel h2 { margin: 9px 0; font: 700 1rem/1.35 var(--display); }
 .turn-panel p { margin: 0 0 17px; color: var(--cream-muted); font-size: .78rem; line-height: 1.55; }
 .compact-roster #player-roster { display: grid; gap: 8px; }
-.compact-roster p { display: flex; justify-content: space-between; gap: 8px; margin: 0; padding-bottom: 8px; border-bottom: 1px solid rgba(214, 183, 81, .13); font-size: .76rem; }
+.compact-roster p { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 10px; margin: 0; padding-bottom: 8px; border-bottom: 1px solid rgba(214, 183, 81, .13); font-size: .76rem; }
 .compact-roster p:last-child { padding: 0; border: 0; }
-.compact-roster p span { color: var(--cream-muted); font-size: .68rem; }
+.compact-roster p > span { display: grid; gap: 3px; min-width: 0; }
+.compact-roster p small { color: var(--cream-muted); font-size: .62rem; line-height: 1.4; overflow-wrap: anywhere; }
+.compact-roster p em { color: var(--gold); font-size: .64rem; font-style: normal; white-space: nowrap; }

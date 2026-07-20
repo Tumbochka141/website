@@ -39,7 +39,7 @@ export class Multiplayer {
         return [...bytes].map((byte) => ROOM_ALPHABET[byte % ROOM_ALPHABET.length]).join("");
     }
 
-    async createRoom(playerName, maxPlayers = 4, avatarUrl = null) {
+    async createRoom(playerName, maxPlayers = 4, avatarUrl = null, gameType = "uno") {
         await this.connect();
 
         for (let attempt = 0; attempt < 8; attempt++) {
@@ -51,12 +51,13 @@ export class Multiplayer {
                     hostId: this.user.uid,
                     status: "lobby",
                     maxPlayers,
+                    gameType,
                     createdAt: Date.now()
                 };
             }, { applyLocally: false });
 
             if (result.committed) {
-                await this.joinRoom(roomId, playerName, avatarUrl);
+                await this.joinRoom(roomId, playerName, avatarUrl, gameType);
                 return roomId;
             }
         }
@@ -64,7 +65,7 @@ export class Multiplayer {
         throw new Error("Не получилось подобрать свободный код комнаты.");
     }
 
-    async joinRoom(roomId, playerName, avatarUrl = null) {
+    async joinRoom(roomId, playerName, avatarUrl = null, expectedGameType = "uno") {
         await this.connect();
         const normalizedRoomId = Multiplayer.normalizeRoomId(roomId);
         if (normalizedRoomId.length !== 6) throw new Error("Код комнаты должен содержать 6 символов.");
@@ -72,6 +73,12 @@ export class Multiplayer {
         const metaSnapshot = await get(ref(this.db, `rooms/${normalizedRoomId}/meta`));
         const meta = metaSnapshot.val();
         if (!meta) throw new Error("Комната не найдена.");
+
+        if (meta.gameType !== expectedGameType) {
+            throw new Error(
+                "Эта комната создана для другой игры."
+            );
+        }
 
         const playersSnapshot = await get(ref(this.db, `rooms/${normalizedRoomId}/players`));
         const players = playersSnapshot.val() ?? {};
@@ -144,6 +151,14 @@ export class Multiplayer {
         await remove(ref(this.db, `rooms/${this.roomId}/commands/${commandId}`));
     }
 
+    async reportCommandError(playerId, message) {
+        this.requireRoom();
+        await set(ref(this.db, `rooms/${this.roomId}/public/commandErrors/${playerId}`), {
+            message: String(message ?? "Ошибка игровой команды").slice(0, 300),
+            createdAt: Date.now()
+        });
+    }
+
     async setGame(engine, publicState, hands) {
         this.requireRoom();
         const patch = {
@@ -165,6 +180,39 @@ export class Multiplayer {
     async getRoom() {
         this.requireRoom();
         return (await get(ref(this.db, `rooms/${this.roomId}`))).val();
+    }
+
+    async removePlayer(playerId) {
+        this.requireRoom();
+        const meta = (await get(ref(this.db, `rooms/${this.roomId}/meta`))).val();
+        if (meta?.hostId !== this.user.uid) throw new Error("Удалять игроков может только ведущий.");
+        if (!playerId || playerId === this.user.uid) throw new Error("Ведущий не может удалить себя этой кнопкой.");
+        await remove(ref(this.db, `rooms/${this.roomId}/players/${playerId}`));
+    }
+
+    async resetGame() {
+        this.requireRoom();
+        const meta = (await get(ref(this.db, `rooms/${this.roomId}/meta`))).val();
+        if (meta?.hostId !== this.user.uid) throw new Error("Сбросить партию может только ведущий.");
+        const roomPath = `rooms/${this.roomId}`;
+        await Promise.all([
+            remove(ref(this.db, `${roomPath}/engine`)),
+            remove(ref(this.db, `${roomPath}/public`)),
+            remove(ref(this.db, `${roomPath}/hands`)),
+            remove(ref(this.db, `${roomPath}/commands`))
+        ]);
+        await update(ref(this.db, `${roomPath}/meta`), { status: "lobby" });
+    }
+
+    async deleteRoom() {
+        this.requireRoom();
+        const meta = (await get(ref(this.db, `rooms/${this.roomId}/meta`))).val();
+        if (meta?.hostId !== this.user.uid) throw new Error("Закрыть комнату может только ведущий.");
+        await onDisconnect(this.playerRef).cancel();
+        await remove(ref(this.db, `rooms/${this.roomId}`));
+        this.clearListeners();
+        this.roomId = null;
+        this.playerRef = null;
     }
 
     async leave() {
@@ -193,7 +241,7 @@ export class Multiplayer {
 
 function sanitizeName(value) {
     const name = String(value ?? "").trim().replace(/\s+/g, " ").slice(0, 24);
-    return name || "Безымянная сова";
+    return name || "Игрок";
 }
 
 function sanitizeAvatarUrl(value) {

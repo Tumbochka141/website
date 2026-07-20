@@ -2,7 +2,7 @@ import { PLAYER_NAME_STORAGE_KEY } from "./constants.js";
 
 export function saveIdentity(nameInput) {
     const profile = window.DiscordProfile?.getProfile();
-    const name = nameInput.value.trim().slice(0, 24) || profile?.name || "Совёнок";
+    const name = nameInput.value.trim().slice(0, 24) || profile?.name || "Игрок";
     nameInput.value = name;
     localStorage.setItem(PLAYER_NAME_STORAGE_KEY, name);
     return { name, avatarUrl: profile?.avatarUrl ?? null };

@@ -7,11 +7,14 @@
     .round-bar { grid-template-columns: auto auto 1fr; align-items: center; gap: 18px; }
     .round-bar__phase { grid-column: auto; padding: 0 0 0 18px; border-top: 0; border-left: 1px solid var(--line); }
     .round-bar .button { grid-column: 1 / -1; }
-    .player-layout, .host-layout { grid-template-columns: 1fr; }
+    .player-layout, .host-layout, .host-editor__body { grid-template-columns: 1fr; }
+    .special-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .special-controls .button { grid-column: 1 / -1; }
     .player-aside { grid-template-columns: 1fr 1fr; }
     .host-traits { grid-template-columns: repeat(2, 1fr); }
     .host-traits > span:nth-child(3) { border-left: 0; border-top: 1px solid rgba(214, 183, 81, .16); }
     .host-traits > span:nth-child(4) { border-top: 1px solid rgba(214, 183, 81, .16); }
+    .host-special-lab__controls { grid-template-columns: 1fr 1fr; }
 }
 
 @media (max-width: 680px) {
@@ -28,20 +31,24 @@
     .header-game { padding-right: 0; border-right: 0; }
     .header-game span { display: none; }
     .header-game h1 { font-size: 1.15rem; }
-    .header-tools { grid-column: 1 / -1; width: 100%; }
-    .mode-tabs { width: 100%; border-radius: 8px; }
+    .header-tools { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr) 48px; width: 100%; }
+    .mode-tabs { width: 100%; min-width: 0; border-radius: 8px; }
+    .bunker-theme-toggle { flex-basis: 48px; width: 48px; height: 44px; }
     .mode-tabs label { min-height: 40px; display: grid; place-items: center; padding: 7px 9px; border-radius: 6px; }
     .mode-tabs span { font-size: .64rem; }
-    .game-status { display: none; }
     .round-bar { grid-template-columns: 1fr 1fr; }
     .round-bar__phase { grid-column: 1 / -1; padding: 14px 0 0; border-top: 1px solid var(--line); border-left: 0; }
     .round-bar .button { grid-column: 1 / -1; }
-    .traits-grid, .player-aside { grid-template-columns: 1fr; }
+    .traits-grid, .player-aside, .special-controls { grid-template-columns: 1fr; }
+    .host-special-lab__controls { grid-template-columns: 1fr; }
     .trait-card:nth-child(even) { border-left: 0; padding-left: 14px; }
     .trait-card--special { grid-column: auto; }
     .panel { padding: 17px 14px; }
     .panel-heading { flex-direction: column; }
     .setup-grid { grid-template-columns: 1fr 1fr; }
+    #online-lobby .setup-grid { grid-template-columns: 1fr; grid-template-areas: "name" "code" "create" "join"; }
+    #create-room, #join-room { width: 100%; min-width: 0; }
+    .room-actions { display: flex; flex-wrap: wrap; margin: 10px 0 0; }
     .setup-grid__name, .setup-grid .button { grid-column: 1 / -1; }
     .host-traits { grid-template-columns: 1fr; }
     .host-traits > span + span { border-left: 0; border-top: 1px solid rgba(214, 183, 81, .16); }

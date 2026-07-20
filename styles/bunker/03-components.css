@@ -5,6 +5,7 @@
 .round-bar strong { font-size: .93rem; font-weight: 800; }
 .round-bar strong b { font: inherit; }
 .round-bar__phase { grid-column: 1 / -1; padding-top: 17px; border-top: 1px solid var(--line); }
+.round-bar .game-status { grid-column: 1 / -1; justify-self: stretch; }
 .round-bar .button { grid-column: 1 / -1; align-self: end; }
 
 .button { min-height: 41px; padding: 0 16px; color: var(--cream); background: var(--navy-800); border: 1px solid rgba(214, 183, 81, .45); border-radius: 8px; font-size: .68rem; font-weight: 800; transition: transform .15s ease, filter .15s ease; }

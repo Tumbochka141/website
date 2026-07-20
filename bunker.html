@@ -46,9 +46,39 @@
             <div class="header-tools">
                 <div class="mode-tabs" role="tablist" aria-label="Выберите режим">
                     <label for="mode-player" role="tab"><span>Игрок</span></label>
-                    <label for="mode-host" role="tab"><span>Ведущий</span></label>
+                    <label for="mode-host" role="tab" hidden><span>Ведущий</span></label>
                 </div>
-                <span class="game-status" id="game-status"><i aria-hidden="true"></i><span>Ожидание</span></span>
+                <button class="bunker-theme-toggle" id="bunker-theme-toggle" type="button" aria-label="Включить тёплое освещение" aria-pressed="false" title="Тёплое освещение">
+                    <svg viewBox="8 28 150 140" aria-hidden="true">
+                        <defs>
+                            <linearGradient id="bunker-lamp-metal" x1="24" y1="30" x2="132" y2="137" gradientUnits="userSpaceOnUse">
+                                <stop offset="0"/>
+                                <stop offset=".45"/>
+                                <stop offset="1"/>
+                            </linearGradient>
+                        </defs>
+                        <circle class="bunker-lamp__glow" cx="112" cy="103" r="51"/>
+                        <path class="bunker-lamp__beam" d="M76 111 53 165h108l-23-54Z"/>
+                        <path class="bunker-lamp__plate" d="M18 45 29 34h33l10 11v82l-10 10H29l-11-10Z"/>
+                        <path class="bunker-lamp__plate-inset" d="M27 50h36v72H27Z"/>
+                        <g class="bunker-lamp__plate-bolts">
+                            <circle cx="45" cy="60" r="5"/><circle cx="45" cy="112" r="5"/>
+                        </g>
+                        <g class="bunker-lamp__assembly">
+                            <path class="bunker-lamp__arm" d="M52 99 76 62l15 8-24 38Z"/>
+                            <circle class="bunker-lamp__joint" cx="58" cy="103" r="11"/>
+                            <circle class="bunker-lamp__joint" cx="83" cy="67" r="10"/>
+                            <path class="bunker-lamp__cable" d="M77 61q14-29 38-15l10 16"/>
+                            <path class="bunker-lamp__shade" d="M91 59q13-13 33-2 14 8 19 29H81q2-17 10-27Z"/>
+                            <path class="bunker-lamp__bulb" d="M86 80h53v18q0 33-26 33T86 98Z"/>
+                            <g class="bunker-lamp__cage">
+                                <path d="M89 91h48M93 111h40M99 82l4 44M116 82v48M132 85l-8 41"/>
+                            </g>
+                            <path class="bunker-lamp__collar" d="M89 79h49"/>
+                            <circle class="bunker-lamp__cap" cx="112" cy="130" r="7"/>
+                        </g>
+                    </svg>
+                </button>
             </div>
         </div>
     </header>
@@ -63,14 +93,55 @@
             <span class="bunker-rivets"><i></i><i></i><i></i></span>
         </div>
         <section class="mode-shell" aria-label="Игровой интерфейс">
+            <section class="panel setup-panel" id="online-lobby" aria-labelledby="online-lobby-title">
+                <header class="panel-heading">
+                    <div>
+                        <span>Сетевая игра</span>
+                        <h2 id="online-lobby-title">Вход в убежище</h2>
+                    </div>
+                </header>
+
+                <div class="setup-grid">
+                    <label>
+                        <span>Ваше имя</span>
+                        <input id="online-name" maxlength="24" value="Игрок" autocomplete="nickname">
+                    </label>
+
+                    <button class="button button--primary" id="create-room" type="button">
+                        Создать комнату
+                    </button>
+
+                    <label>
+                        <span>Код комнаты</span>
+                        <input id="room-code-input" maxlength="6" placeholder="ABC234" autocomplete="off">
+                    </label>
+
+                    <button class="button button--quiet" id="join-room" type="button">
+                        Войти
+                    </button>
+                </div>
+
+                <p id="room-info" hidden>
+                    Код комнаты:
+                    <button class="link-button" id="room-code-output" type="button"></button>
+                    <span class="room-actions">
+                        <button class="link-button" id="restart-room" type="button" hidden>Новая партия</button>
+                        <button class="link-button" id="leave-room" type="button">Выйти</button>
+                    </span>
+                </p>
+
+                <p id="online-error" role="alert"></p>
+            </section>
+
             <section class="round-bar" aria-label="Состояние партии">
                 <div><span>Раунд</span><strong><b id="round-current">1</b>/<b id="round-total">5</b></strong></div>
                 <div><span>В игре</span><strong><b id="players-alive">8</b>/<b id="players-total">8</b></strong></div>
                 <div class="round-bar__phase"><span>Сейчас</span><strong id="round-phase">Раскрытие карт</strong></div>
+                <span class="game-status" id="game-status"><i aria-hidden="true"></i><span>Ожидание</span></span>
                 <button class="button button--quiet host-only" id="next-phase" type="button">Следующая фаза →</button>
             </section>
 
-            <section class="scenario-grid" aria-label="Условия партии">
+            <section class="scenario-grid" id="scenario-grid" aria-label="Условия партии">
                 <article class="scenario-card scenario-card--danger" id="catastrophe-card" data-card-type="catastrophe">
                     <span class="scenario-card__label">Катастрофа</span>
                     <h2 data-card-title>Данные засекречены</h2>
@@ -89,6 +160,13 @@
                     <p data-card-description>Периметр остаётся под наблюдением.</p>
                     <button class="link-button host-only" id="reveal-threat" type="button">Раскрыть</button>
                 </article>
+            </section>
+
+            <section class="panel vote-panel shared-vote-panel" id="vote-panel" aria-labelledby="vote-title" hidden>
+                <header class="panel-heading"><div><span id="vote-round-label">Раунд 1</span><h2 id="vote-title">Голосование</h2></div></header>
+                <p id="vote-status">Голосование пока закрыто.</p>
+                <div class="vote-list" id="vote-list"></div>
+                <button class="button button--wine" id="confirm-vote" type="button" disabled>Подтвердить голос</button>
             </section>
 
             <section class="mode-view mode-view--player" aria-labelledby="player-mode-title">
@@ -126,9 +204,26 @@
                             </article>
                             <article class="trait-card trait-card--special" data-trait="special">
                                 <span>Особая карта</span><strong data-trait-value>Засекречено</strong>
-                                <button type="button" data-action="play-special">Разыграть</button>
+                                <button type="button" data-action="reveal-trait">Раскрыть</button>
                             </article>
                         </div>
+                        <div class="special-controls" id="special-controls" hidden>
+                            <p id="special-guide">Раскройте особую карту, чтобы увидеть условия её применения.</p>
+                            <select id="special-target-player" aria-label="Цель особой карты"></select>
+                            <select id="special-target-trait" aria-label="Тип характеристики">
+                                <option value="profession">Профессия</option><option value="health">Здоровье</option>
+                                <option value="biology">Биоданные</option><option value="fact">Факт</option>
+                                <option value="hobby">Хобби</option><option value="baggage">Багаж</option>
+                            </select>
+                            <select id="special-target-scenario" aria-label="Карта бункера"><option value="">Карта бункера не выбрана</option></select>
+                            <select id="special-choice" aria-label="Дополнительный выбор">
+                                <option value="after">Игроки после меня</option><option value="before">Игроки передо мной</option>
+                                <option value="younger">Младше 33 лет</option><option value="older">Старше 33 лет</option>
+                                <option value="female">Женщины</option><option value="male">Мужчины</option>
+                            </select>
+                            <button class="button button--wine" id="play-special" type="button">Разыграть особую карту</button>
+                        </div>
+                        <div class="shared-secrets" id="shared-secrets" hidden></div>
                     </section>
 
                     <aside class="player-aside">
@@ -190,6 +285,65 @@
                     </div>
                 </details>
 
+                <details class="panel host-editor" id="host-editor" hidden>
+                    <summary><span><small>Управление партией</small><strong>Редактор ведущего</strong></span><b>Открыть</b></summary>
+                    <div class="host-editor__body">
+                        <section>
+                            <h3>Места в бункере</h3>
+                            <div class="host-editor__row">
+                                <input id="host-edit-capacity" type="number" min="1" max="15" aria-label="Количество мест">
+                                <button class="button button--quiet" id="host-apply-capacity" type="button">Изменить</button>
+                            </div>
+                        </section>
+                        <section>
+                            <h3>Игрок и его карта</h3>
+                            <div class="host-editor__fields">
+                                <select id="host-edit-player" aria-label="Игрок"></select>
+                                <select id="host-edit-trait" aria-label="Характеристика">
+                                    <option value="profession">Профессия</option><option value="health">Здоровье</option>
+                                    <option value="biology">Биоданные</option><option value="fact">Факт</option>
+                                    <option value="hobby">Хобби</option><option value="baggage">Багаж</option>
+                                    <option value="special">Особая карта</option>
+                                </select>
+                                <input id="host-edit-value" maxlength="500" placeholder="Новое значение">
+                                <label class="host-editor__check"><input id="host-edit-revealed" type="checkbox"><span>Сразу раскрыть</span></label>
+                            </div>
+                            <div class="host-editor__actions">
+                                <button class="button button--quiet" id="host-random-trait" type="button">Случайная из колоды</button>
+                                <button class="button button--primary" id="host-apply-trait" type="button">Сохранить карту</button>
+                            </div>
+                            <div class="host-editor__row">
+                                <select id="host-edit-status" aria-label="Статус игрока"><option value="active">В игре</option><option value="exiled">Изгнан</option></select>
+                                <button class="button button--quiet" id="host-apply-status" type="button">Изменить статус</button>
+                            </div>
+                        </section>
+                        <section>
+                            <h3>Дополнительная карта условий</h3>
+                            <div class="host-editor__fields">
+                                <select id="host-edit-scenario-type" aria-label="Тип карты"><option value="bunker">Бункер</option><option value="threat">Угроза</option><option value="catastrophe">Катастрофа</option></select>
+                                <input id="host-edit-scenario-title" maxlength="100" placeholder="Название">
+                                <textarea id="host-edit-scenario-description" maxlength="2000" placeholder="Описание карты"></textarea>
+                            </div>
+                            <div class="host-editor__actions">
+                                <button class="button button--quiet" id="host-random-scenario" type="button">Случайная из колоды</button>
+                                <button class="button button--primary" id="host-add-scenario" type="button">Добавить карту</button>
+                            </div>
+                        </section>
+                        <section class="host-special-lab">
+                            <h3>Проверка особых карт из таблицы</h3>
+                            <div class="host-special-lab__controls">
+                                <select id="host-special-player" aria-label="Получатель особой карты"></select>
+                                <select id="host-special-card" aria-label="Особая карта"></select>
+                                <label class="host-editor__check"><input id="host-special-revealed" type="checkbox" checked><span>Сразу раскрыть</span></label>
+                                <button class="button button--primary" id="host-assign-special" type="button">Выдать для проверки</button>
+                            </div>
+                            <article class="host-special-preview" id="host-special-preview">
+                                <strong></strong><span></span><small></small>
+                            </article>
+                        </section>
+                    </div>
+                </details>
+
                 <div class="host-layout">
                     <section class="panel host-players" aria-labelledby="host-players-title">
                         <header class="panel-heading"><div><span>Состав</span><h2 id="host-players-title">Участники</h2></div><span class="soft-badge" id="active-player-label">Ход: Игрок 1</span></header>
@@ -204,18 +358,6 @@
                     </section>
 
                     <div class="host-side">
-                        <section class="panel vote-panel" id="vote-panel" aria-labelledby="vote-title">
-                            <header class="panel-heading"><div><span>Раунд 1</span><h2 id="vote-title">Голосование</h2></div></header>
-                            <p id="vote-status">Выберите кандидата на изгнание.</p>
-                            <div class="vote-list" id="vote-list">
-                                <button type="button" data-vote-target="2"><span>Игрок 2</span><b>0</b></button>
-                                <button type="button" data-vote-target="3"><span>Игрок 3</span><b>0</b></button>
-                                <button type="button" data-vote-target="4"><span>Игрок 4</span><b>0</b></button>
-                                <button class="host-vote-target" type="button" data-vote-target="host"><span>Ведущий</span><b>0</b></button>
-                            </div>
-                            <button class="button button--wine" id="confirm-vote" type="button" disabled>Подтвердить</button>
-                        </section>
-
                         <section class="panel log-panel" aria-labelledby="log-title">
                             <header class="panel-heading"><div><span>События</span><h2 id="log-title">Журнал партии</h2></div></header>
                             <ol id="event-log" aria-live="polite"><li><time>00:00</time> Протокол готов к запуску.</li><li><time>00:01</time> Ожидаются участники.</li></ol>
@@ -229,5 +371,7 @@
         </section>
     </main>
 
+    <script src="data/bunker/theme.js"></script>
+    <script type="module" src="data/bunker/bunker.js"></script>
 </body>
 </html>
