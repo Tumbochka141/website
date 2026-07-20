@@ -68,6 +68,7 @@ export function createInitialGame(players, capacity, random = Math.random) {
         players: playerStates,
         characters,
         votes,
+        lastExiledPlayerId: "",
         voteResult: emptyVoteResult(),
         roundEffects: {},
         scenarioSecrets: scenarios,
@@ -129,6 +130,7 @@ export function createPublicState(engine) {
         order: engine.order,
         currentPlayerIndex: engine.currentPlayerIndex,
         players: createPublicPlayers(engine.players),
+        lastExiledPlayerId: engine.lastExiledPlayerId ?? "",
         voteResult: engine.voteResult,
         catastrophe: engine.catastrophe,
         bunker: engine.bunker,
@@ -246,7 +248,7 @@ function vote(engine, command) {
     const target = engine.players?.[targetId];
 
     if (engine.phase !== PHASES.VOTING) throw new Error("Сейчас голосование не проводится.");
-    if (!voter || (voter.status !== "active" && !voter.persistentVoter)) throw new Error("Вы не участвуете в голосовании.");
+    if (!voter || !votingPlayerIds(engine).includes(voterId)) throw new Error("Вы не участвуете в голосовании.");
     if (!target || target.status !== "active") throw new Error("Нельзя голосовать за этого игрока.");
     if (voter.voteDisabled) throw new Error("Ваша особая карта запрещает вам голосовать в этом раунде.");
     if (target.immuneThisRound) throw new Error("У этого игрока иммунитет в текущем голосовании.");
@@ -384,6 +386,19 @@ function continueAfterResults(engine) {
         const player = engine.players[id];
         player.hasFinishedTurn = false;
         player.revealedThisTurn = false;
+        player.voteSubmitted = false;
+        player.voteMultiplier = 1;
+        player.voteDisabled = false;
+        player.immuneThisRound = false;
+        player.ignoreVotesIfHalf = false;
+        player.ignoreVotesIfEven = false;
+        player.selfPenaltyAgainst = false;
+        player.loneVoteTriple = false;
+        player.votersGetHealth = false;
+        engine.votes[id] = "";
+    }
+    for (const id of votingPlayerIds(engine)) {
+        const player = engine.players[id];
         player.voteSubmitted = false;
         player.voteMultiplier = 1;
         player.voteDisabled = false;
@@ -894,7 +909,8 @@ function resolveBunkerBaggageChoice(engine, playerId, choice) {
 function votingPlayerIds(engine) {
     return engine.order.filter((id) => {
         const player = engine.players[id];
-        return player?.status === "active" || player?.persistentVoter;
+        const isLastExiled = player?.status === "exiled" && id === engine.lastExiledPlayerId;
+        return player?.status === "active" || isLastExiled || player?.persistentVoter;
     });
 }
 
@@ -1002,6 +1018,7 @@ function exilePlayer(engine, playerId, visited = new Set()) {
     visited.add(playerId);
     const player = engine.players[playerId];
     player.status = "exiled";
+    engine.lastExiledPlayerId = playerId;
     if (engine.roundEffects?.exileBaggage?.length) {
         replaceTrait(engine, playerId, "baggage", `${engine.characters[playerId].baggage}; с собой: ${engine.roundEffects.exileBaggage.join("; ")}`);
     }

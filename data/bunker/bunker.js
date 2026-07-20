@@ -531,7 +531,10 @@ function renderRosters(players, order, currentIndex) {
 }
 
 function playerStatus(player, isCurrent, playerId) {
-    if (player.status === "exiled") return "Изгнан";
+    if (player.status === "exiled") {
+        const canStillVote = playerId === publicState?.lastExiledPlayerId || player.persistentVoter;
+        return canStillVote ? "Изгнан · право голоса" : "Изгнан";
+    }
     if (player.status === "offline" || room?.players?.[playerId]?.online === false) return "Не в сети";
     if (isCurrent) return "Ходит сейчас";
     return "В игре";
@@ -770,7 +773,9 @@ function renderVoting() {
         return button;
     }));
 
-    const canVote = myPlayer?.status === "active" || myPlayer?.persistentVoter;
+    const isLastExiled = myPlayer?.status === "exiled"
+        && multiplayer?.user?.uid === publicState.lastExiledPlayerId;
+    const canVote = myPlayer?.status === "active" || isLastExiled || myPlayer?.persistentVoter;
     ui.confirmVote.disabled = !isVoting || !canVote || myPlayer.voteDisabled || !selectedVoteTarget;
     ui.voteStatus.textContent = voteStatusText(players);
 }
@@ -778,9 +783,13 @@ function renderVoting() {
 function voteStatusText(players) {
     const result = publicState.voteResult;
     if (publicState.phase === PHASES.VOTING) {
-        const activePlayers = Object.values(players).filter((player) => player.status === "active");
-        const submitted = activePlayers.filter((player) => player.voteSubmitted).length;
-        const progress = `Проголосовали: ${submitted}/${activePlayers.length}.`;
+        const eligibleVoters = Object.entries(players).filter(([id, player]) => (
+            player.status === "active"
+            || player.persistentVoter
+            || (player.status === "exiled" && id === publicState.lastExiledPlayerId)
+        ));
+        const submitted = eligibleVoters.filter(([, player]) => player.voteSubmitted).length;
+        const progress = `Проголосовали: ${submitted}/${eligibleVoters.length}.`;
         if (result?.status === "tie") {
             const names = (result.candidates ?? []).map((id) => players[id]?.name).filter(Boolean);
             return `Переголосование: ${names.join(" или ")}. ${progress} Голос можно менять до закрытия.`;
