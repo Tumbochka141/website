@@ -14,6 +14,7 @@
 .trait-card button { justify-self: start; padding: 0; color: var(--gold-bright); background: none; border: 0; font-size: .64rem; font-weight: 800; }
 .trait-card.is-revealed { background-color: var(--wine); background-image: repeating-linear-gradient(135deg, transparent 0 18px, rgba(255, 255, 255, .018) 18px 20px); }
 .trait-card.is-revealed strong { color: var(--cream); }
+.trait-card.is-required { background: rgba(214, 183, 81, .1); box-shadow: inset 4px 0 0 var(--gold-bright); }
 .trait-card--special { grid-column: 1 / -1; min-height: 92px; background: rgba(214, 183, 81, .035); }
 .special-controls { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) auto; gap: 8px; margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(214, 183, 81, .16); }
 .special-controls p { grid-column: 1 / -1; margin: 0 0 3px; color: var(--cream-muted); font-size: .68rem; }

@@ -140,6 +140,7 @@
                 <div><span>В игре</span><strong><b id="players-alive">8</b>/<b id="players-total">8</b></strong></div>
                 <div class="round-bar__phase"><span>Сейчас</span><strong id="round-phase">Раскрытие карт</strong></div>
                 <span class="game-status" id="game-status"><i aria-hidden="true"></i><span>Ожидание</span></span>
+                <button class="button button--quiet host-only" id="skip-turn" type="button" hidden>Пропустить ход</button>
                 <button class="button button--quiet host-only" id="next-phase" type="button">Следующая фаза →</button>
             </section>
 
@@ -257,7 +258,6 @@
                     <div class="setup-grid">
                         <label><span>Игроков</span><select id="player-count" name="playerCount"><option>6</option><option>7</option><option selected>8</option><option>9</option><option>10</option><option>11</option><option>12</option><option>13</option><option>14</option><option>15</option></select></label>
                         <label><span>Мест</span><select id="bunker-capacity" name="bunkerCapacity"><option>3</option><option selected>4</option><option>5</option><option>6</option><option>7</option></select></label>
-                        <label class="setup-grid__name"><span>Имя ведущего</span><input id="host-name" name="hostName" value="Ведущий" autocomplete="nickname"></label>
                         <button class="button button--primary" id="start-game" type="button">Начать игру</button>
                         <label class="host-play-toggle" for="host-plays">
                             <input id="host-plays" name="hostPlays" type="checkbox">
@@ -362,12 +362,12 @@
                             </div>
                         </section>
                         <section class="host-special-lab">
-                            <h3>Проверка особых карт из таблицы</h3>
+                            <h3>Особые карты</h3>
                             <div class="host-special-lab__controls">
                                 <select id="host-special-player" aria-label="Получатель особой карты"></select>
                                 <select id="host-special-card" aria-label="Особая карта"></select>
                                 <label class="host-editor__check"><input id="host-special-revealed" type="checkbox" checked><span>Сразу раскрыть</span></label>
-                                <button class="button button--primary" id="host-assign-special" type="button">Выдать для проверки</button>
+                                <button class="button button--primary" id="host-assign-special" type="button">Выдать карту</button>
                             </div>
                             <article class="host-special-preview" id="host-special-preview">
                                 <strong></strong><span></span><small></small>

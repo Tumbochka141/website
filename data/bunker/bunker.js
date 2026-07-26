@@ -36,7 +36,6 @@ const ui = {
     status: select("#game-status span"),
     startGame: select("#start-game"),
     setupPanel: select("#setup-panel"),
-    hostName: select("#host-name"),
     playerCount: select("#player-count"),
     bunkerCapacity: select("#bunker-capacity"),
     hostPlays: select("#host-plays"),
@@ -45,6 +44,7 @@ const ui = {
     roundPhase: select("#round-phase"),
     playersAlive: select("#players-alive"),
     playersTotal: select("#players-total"),
+    skipTurn: select("#skip-turn"),
     nextPhase: select("#next-phase"),
     turnPanel: select("#turn-panel"),
     turnKicker: select("#turn-kicker"),
@@ -167,6 +167,7 @@ function bindEvents() {
     ui.leaveRoom.addEventListener("click", () => run(leaveCurrentRoom));
     ui.restartRoom.addEventListener("click", () => run(resetCurrentGame));
     ui.startGame.addEventListener("click", () => run(startGame));
+    ui.skipTurn.addEventListener("click", () => run(() => sendCommand("SKIP_TURN")));
     ui.nextPhase.addEventListener("click", () => run(() => sendCommand("NEXT_PHASE")));
     ui.finishTurn.addEventListener("click", () => run(() => sendCommand("FINISH_TURN")));
     ui.hostFinishTurn.addEventListener("click", () => run(() => sendCommand("FINISH_TURN")));
@@ -329,13 +330,11 @@ async function restoreRoom() {
 function restorePlayerName() {
     const savedName = localStorage.getItem(PLAYER_NAME_STORAGE_KEY);
     if (savedName) ui.onlineName.value = savedName;
-    ui.hostName.value = ui.onlineName.value;
 }
 
 function readPlayerName() {
     const playerName = ui.onlineName.value.trim().replace(/\s+/g, " ").slice(0, 24) || "Игрок";
     ui.onlineName.value = playerName;
-    ui.hostName.value = playerName;
     localStorage.setItem(PLAYER_NAME_STORAGE_KEY, playerName);
     return playerName;
 }
@@ -405,6 +404,10 @@ function renderRoom() {
     ui.hostPlays.disabled = playing;
     ui.playerCount.disabled = playing;
     ui.bunkerCapacity.disabled = playing;
+    if (host && playing && publicState?.players) {
+        ui.hostPlays.checked = Boolean(publicState.players[room.meta.hostId]);
+    }
+    document.body.classList.toggle("host-is-player", host && Boolean(publicState?.players?.[room.meta.hostId]));
 
     if (host) {
         ui.modeHost.checked = true;
@@ -466,6 +469,9 @@ function renderGame() {
 
     const players = publicState.players ?? {};
     const activePlayers = Object.values(players).filter((player) => player.status === "active");
+    const hostIsPlayer = isHost() && Boolean(players[room?.meta?.hostId]);
+    document.body.classList.toggle("host-is-player", hostIsPlayer);
+    if (isHost() && room?.meta?.status !== "lobby") ui.hostPlays.checked = hostIsPlayer;
     ui.roundCurrent.textContent = Number(publicState.round ?? 0);
     ui.roundTotal.textContent = Number(publicState.totalRounds ?? 0);
     ui.playersAlive.textContent = activePlayers.length;
@@ -484,7 +490,7 @@ function renderGame() {
     if (publicState.phase === PHASES.FINISHED) {
         setStatus(`Выжившие: ${activePlayers.map((player) => player.name).join(", ")}`);
     } else {
-        setStatus(getPhaseLabel(publicState.phase));
+        setStatus(getStatusMessage());
     }
 }
 
@@ -560,14 +566,24 @@ function renderPrivateState() {
     const currentPlayerId = publicState?.order?.[publicState.currentPlayerIndex];
     const currentPlayer = currentPlayerId ? publicState?.players?.[currentPlayerId] : null;
     const revealPhase = publicState?.phase === PHASES.REVEAL;
+    const requiredTrait = publicState?.requiredTrait;
+    const mustRevealRequiredTrait = Boolean(
+        requiredTrait
+        && myPublicState
+        && !myPublicState.revealedTraits?.[requiredTrait]
+    );
 
     ui.turnPanel.classList.toggle("is-my-turn", myTurn);
     ui.turnPanel.classList.toggle("is-waiting-turn", revealPhase && !myTurn);
 
     if (myTurn) {
         ui.turnKicker.textContent = "Сейчас ваш ход";
-        ui.turnTitle.textContent = "Раскройте одну характеристику";
-        ui.turnDescription.textContent = "Выберите характеристику ниже, затем завершите ход.";
+        ui.turnTitle.textContent = mustRevealRequiredTrait
+            ? `Раскройте: ${TRAIT_LABELS[requiredTrait]}`
+            : "Раскройте одну характеристику";
+        ui.turnDescription.textContent = mustRevealRequiredTrait
+            ? "Особая карта задала характеристику для всех игроков в этом раунде."
+            : "Выберите характеристику ниже, затем завершите ход.";
     } else if (revealPhase && currentPlayer) {
         ui.turnKicker.textContent = "Сейчас ходит";
         ui.turnTitle.textContent = currentPlayer.name;
@@ -585,8 +601,12 @@ function renderPrivateState() {
         const revealed = Boolean(myPublicState?.revealedTraits?.[trait]);
         valueElement.textContent = privateState?.[trait] || "Не назначено";
         card.classList.toggle("is-revealed", revealed);
+        card.classList.toggle("is-required", mustRevealRequiredTrait && trait === requiredTrait);
         button.textContent = revealed ? "Раскрыто" : "Раскрыть";
-        button.disabled = !myTurn || revealed || Boolean(myPublicState?.revealedThisTurn);
+        button.disabled = !myTurn
+            || revealed
+            || Boolean(myPublicState?.revealedThisTurn)
+            || (mustRevealRequiredTrait && trait !== requiredTrait);
     }
 
     const hasHiddenTraits = TRAIT_KEYS.some((trait) => !myPublicState?.revealedTraits?.[trait]);
@@ -599,8 +619,8 @@ function renderPrivateState() {
     const pendingShare = publicState?.pendingSecretShare?.targetId === myId
         ? publicState.pendingSecretShare
         : null;
-    const pendingSpecial = publicState?.pendingSpecialChoice?.playerId === myId
-        ? publicState.pendingSpecialChoice
+    const pendingSpecial = privateState?.pendingSpecialChoice?.playerId === myId
+        ? privateState.pendingSpecialChoice
         : null;
     renderSpecialChoiceOptions(pendingSpecial);
     const specialId = Number(privateState?.specialId ?? 0);
@@ -645,8 +665,12 @@ function renderPrivateState() {
         const revealed = Boolean(myPublicState?.revealedTraits?.[trait]);
         const button = card.querySelector("[data-host-reveal-trait]");
         card.classList.toggle("is-revealed", revealed);
+        card.classList.toggle("is-required", mustRevealRequiredTrait && trait === requiredTrait);
         button.textContent = revealed ? "Раскрыто" : "Раскрыть";
-        button.disabled = !myTurn || revealed || Boolean(myPublicState?.revealedThisTurn);
+        button.disabled = !myTurn
+            || revealed
+            || Boolean(myPublicState?.revealedThisTurn)
+            || (mustRevealRequiredTrait && trait !== requiredTrait);
         button.setAttribute("aria-pressed", String(revealed));
     }
 }
@@ -796,6 +820,13 @@ function renderVoting() {
     const revoteCandidates = publicState.voteResult?.status === "tie"
         ? publicState.voteResult.candidates ?? []
         : [];
+    const isLastExiled = myPlayer?.status === "exiled"
+        && multiplayer?.user?.uid === publicState.lastExiledPlayerId;
+    const canVote = Boolean(myPlayer && (
+        myPlayer.status === "active"
+        || isLastExiled
+        || myPlayer.persistentVoter
+    ) && !myPlayer.voteDisabled);
 
     ui.votePanel.hidden = ![PHASES.VOTING, PHASES.RESULTS, PHASES.FINISHED].includes(publicState.phase);
     ui.voteRoundLabel.textContent = `Раунд ${publicState.round}`;
@@ -812,6 +843,7 @@ function renderVoting() {
         button.dataset.voteTarget = id;
         button.classList.toggle("is-selected", id === selectedVoteTarget);
         button.disabled = !isVoting
+            || !canVote
             || player.immuneThisRound
             || Boolean(myPlayer?.cannotVoteAgainst?.[id])
             || Boolean(myPlayer?.forcedSelfVote && id !== multiplayer?.user?.uid)
@@ -819,15 +851,13 @@ function renderVoting() {
         name.textContent = player.name;
         count.textContent = publicState.phase === PHASES.RESULTS
             ? String(publicState.voteResult?.counts?.[id] ?? 0)
-            : player.voteSubmitted ? "✓" : "";
+            : "";
         button.append(name, count);
         return button;
     }));
 
-    const isLastExiled = myPlayer?.status === "exiled"
-        && multiplayer?.user?.uid === publicState.lastExiledPlayerId;
-    const canVote = myPlayer?.status === "active" || isLastExiled || myPlayer?.persistentVoter;
-    ui.confirmVote.disabled = !isVoting || !canVote || myPlayer.voteDisabled || !selectedVoteTarget;
+    ui.confirmVote.disabled = !isVoting || !canVote || !selectedVoteTarget;
+    ui.confirmVote.textContent = myPlayer?.voteSubmitted ? "Изменить голос" : "Подтвердить голос";
     ui.voteStatus.textContent = voteStatusText(players);
 }
 
@@ -835,9 +865,12 @@ function voteStatusText(players) {
     const result = publicState.voteResult;
     if (publicState.phase === PHASES.VOTING) {
         const eligibleVoters = Object.entries(players).filter(([id, player]) => (
-            player.status === "active"
-            || player.persistentVoter
-            || (player.status === "exiled" && id === publicState.lastExiledPlayerId)
+            (
+                player.status === "active"
+                || player.persistentVoter
+                || (player.status === "exiled" && id === publicState.lastExiledPlayerId)
+            )
+            && !player.voteDisabled
         ));
         const submitted = eligibleVoters.filter(([, player]) => player.voteSubmitted).length;
         const progress = `Проголосовали: ${submitted}/${eligibleVoters.length}.`;
@@ -860,10 +893,17 @@ function voteStatusText(players) {
 function renderControls() {
     const host = isHost();
     const phase = publicState.phase;
+    const currentPlayerId = publicState.order?.[publicState.currentPlayerIndex];
+    const currentPlayer = currentPlayerId ? publicState.players?.[currentPlayerId] : null;
+    ui.skipTurn.hidden = !host || phase !== PHASES.REVEAL || !currentPlayer;
+    ui.skipTurn.disabled = !host || phase !== PHASES.REVEAL || !currentPlayer;
+    ui.skipTurn.textContent = currentPlayer ? `Пропустить ход: ${currentPlayer.name}` : "Пропустить ход";
     ui.nextPhase.hidden = !host || ![PHASES.DISCUSSION, PHASES.VOTING, PHASES.RESULTS].includes(phase);
     ui.nextPhase.disabled = !host;
     ui.nextPhase.textContent = phase === PHASES.DISCUSSION
-        ? "Начать голосование →"
+        ? publicState.round === 1
+            ? "Начать раунд 2 без голосования →"
+            : "Начать голосование →"
         : phase === PHASES.VOTING
             ? "Закрыть голосование →"
             : publicState.voteResult?.status === "tie"
@@ -975,6 +1015,18 @@ function isHost() {
     return Boolean(room?.meta?.hostId && multiplayer?.user?.uid === room.meta.hostId);
 }
 
+function getStatusMessage() {
+    const phase = publicState?.phase;
+    const currentPlayerId = publicState?.order?.[publicState?.currentPlayerIndex];
+    const currentPlayer = currentPlayerId ? publicState?.players?.[currentPlayerId] : null;
+    if (phase === PHASES.REVEAL && currentPlayer) return `Ходит: ${currentPlayer.name}`;
+    if (phase === PHASES.DISCUSSION && publicState?.round === 1) return "Первый раунд: без голосования";
+    if (phase === PHASES.DISCUSSION) return "Обсуждение перед голосованием";
+    if (phase === PHASES.VOTING) return "Идёт голосование";
+    if (phase === PHASES.RESULTS) return "Результаты голосования";
+    return getPhaseLabel(phase);
+}
+
 function getPhaseLabel(phase) {
     return {
         [PHASES.LOBBY]: "Ожидание игроков",
@@ -1002,7 +1054,7 @@ function showConnectedRoom(roomCode) {
 }
 
 function showLobbyForm() {
-    document.body.classList.remove("is-connected", "has-game");
+    document.body.classList.remove("is-connected", "has-game", "host-is-player");
     ui.roomInfo.hidden = true;
     ui.lobbyForm.hidden = false;
 }

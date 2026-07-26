@@ -76,6 +76,7 @@ export function createInitialGame(players, capacity, random = Math.random) {
         catastrophe: hiddenScenario("Катастрофа"),
         bunker: hiddenScenario("Бункер"),
         threat: hiddenScenario("Угроза"),
+        logSequence: 0,
         log: {
             start: {
                 message: "Партия началась.",
@@ -95,6 +96,9 @@ export function applyCommand(engine, command, hostId) {
             break;
         case "FINISH_TURN":
             finishTurn(engine, command);
+            break;
+        case "SKIP_TURN":
+            skipTurn(engine, command, hostId);
             break;
         case "VOTE":
             vote(engine, command);
@@ -133,6 +137,7 @@ export function createPublicState(engine) {
         capacity: engine.capacity,
         order: engine.order,
         currentPlayerIndex: engine.currentPlayerIndex,
+        requiredTrait: engine.roundEffects?.forcedTrait ?? "",
         players: createPublicPlayers(engine.players),
         lastExiledPlayerId: engine.lastExiledPlayerId ?? "",
         voteResult: engine.voteResult,
@@ -140,7 +145,12 @@ export function createPublicState(engine) {
         bunker: engine.bunker,
         threat: engine.threat,
         extraScenarios: engine.extraScenarios ?? {},
-        ...(engine.pendingSpecialChoice ? { pendingSpecialChoice: engine.pendingSpecialChoice } : {}),
+        ...(engine.pendingSpecialChoice ? {
+            pendingSpecialChoice: {
+                type: engine.pendingSpecialChoice.type,
+                playerId: engine.pendingSpecialChoice.playerId
+            }
+        } : {}),
         ...(engine.pendingSecretShare ? { pendingSecretShare: engine.pendingSecretShare } : {}),
         log: engine.log
     };
@@ -170,6 +180,9 @@ export function createPrivateStates(engine) {
         playerId,
         {
             ...engine.characters[playerId],
+            ...(engine.pendingSpecialChoice?.playerId === playerId
+                ? { pendingSpecialChoice: engine.pendingSpecialChoice }
+                : {}),
             ...(engine.sharedSecrets?.[playerId] ? { sharedSecrets: engine.sharedSecrets[playerId] } : {})
         }
     ]));
@@ -222,6 +235,22 @@ function finishTurn(engine, command) {
     const hasHiddenTraits = TRAIT_KEYS.some((trait) => !player.revealedTraits?.[trait]);
     if (!player.revealedThisTurn && hasHiddenTraits) throw new Error("Сначала раскройте характеристику.");
 
+    completeTurn(engine, playerId);
+}
+
+function skipTurn(engine, command, hostId) {
+    if (command.from !== hostId) throw new Error("Пропустить ход может только ведущий.");
+    if (engine.phase !== PHASES.REVEAL) throw new Error("Сейчас нет активного хода.");
+    const currentPlayerId = engine.order[engine.currentPlayerIndex];
+    const player = engine.players?.[currentPlayerId];
+    if (!player || player.status !== "active") throw new Error("Активный игрок не найден.");
+
+    appendLog(engine, `Ведущий пропускает ход игрока ${player.name}.`);
+    completeTurn(engine, currentPlayerId);
+}
+
+function completeTurn(engine, playerId) {
+    const player = engine.players[playerId];
     player.revealedThisTurn = false;
     player.hasFinishedTurn = true;
     const activeIds = activePlayerIds(engine);
@@ -1171,6 +1200,8 @@ function emptyVoteResult() {
 }
 
 function appendLog(engine, message) {
-    const key = `event_${Date.now()}_${engine.revision}`;
-    engine.log[key] = { message, createdAt: Date.now() };
+    const createdAt = Date.now();
+    engine.logSequence = Number(engine.logSequence ?? 0) + 1;
+    const key = `event_${createdAt}_${engine.revision}_${engine.logSequence}`;
+    engine.log[key] = { message, createdAt };
 }

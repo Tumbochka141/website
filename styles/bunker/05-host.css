@@ -1,5 +1,5 @@
 .setup-panel { margin-bottom: 14px; }
-.setup-grid { display: grid; grid-template-columns: 100px 100px 1fr auto; align-items: end; gap: 10px; }
+.setup-grid { display: grid; grid-template-columns: 120px 120px minmax(190px, 1fr); align-items: end; gap: 10px; }
 .setup-grid label { display: grid; gap: 6px; }
 .setup-grid label > span { color: var(--cream-muted); font-size: .64rem; font-weight: 800; }
 .setup-grid input, .setup-grid select { width: 100%; min-height: 41px; padding: 0 11px; color: var(--cream); background: var(--navy-950); border: 1px solid rgba(214, 183, 81, .35); border-radius: 8px; }
@@ -31,7 +31,7 @@ body:not(.is-connected) .mode-view { display: none !important; }
 .host-play-toggle strong { color: var(--cream); font-size: .73rem; }
 .host-play-toggle small { color: var(--cream-muted); font-size: .65rem; line-height: 1.4; }
 .host-dossier { display: none; margin-bottom: 14px; padding: 0; overflow: hidden; }
-.mode-view--host:has(#host-plays:checked) .host-dossier { display: block; }
+body.host-is-player .host-dossier:not([hidden]) { display: block; }
 .host-player-row, .host-vote-target { display: none; }
 .mode-view--host:has(#host-plays:checked) .host-player-row { display: grid; }
 .mode-view--host:has(#host-plays:checked) .host-vote-target { display: flex; }
@@ -76,6 +76,7 @@ body:not(.is-connected) .mode-view { display: none !important; }
 .host-trait-card { min-width: 0; min-height: 126px; display: grid; grid-template-rows: auto 1fr auto; align-content: start; gap: 7px; padding: 13px; background: rgba(7, 28, 46, .5); border: 1px solid rgba(214, 183, 81, .18); border-radius: 9px; }
 .host-trait-card--special { background: rgba(115, 20, 38, .2); border-color: rgba(214, 183, 81, .3); }
 .host-trait-card.is-revealed { background: rgba(214, 183, 81, .08); border-color: rgba(214, 183, 81, .42); }
+.host-trait-card.is-required { background: rgba(214, 183, 81, .12); border-color: var(--gold-bright); box-shadow: inset 4px 0 0 var(--gold-bright); }
 .host-traits small { color: var(--cream-muted); font-size: .61rem; font-weight: 800; }
 .host-traits strong { min-width: 0; font-size: .75rem; line-height: 1.42; overflow-wrap: anywhere; }
 .host-traits button { justify-self: start; padding: 0; color: var(--gold-bright); background: transparent; border: 0; font-size: .64rem; font-weight: 800; cursor: pointer; }
