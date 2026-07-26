@@ -45,6 +45,58 @@ body {
 .bunker-backdrop__detail--valve { top: -8px; left: 0; width: min(20vw, 320px); }
 .bunker-backdrop__detail--hazard { right: 7%; bottom: 1.5%; width: 118px; opacity: .16; }
 
+.bunker-backdrop__dust {
+    position: absolute;
+    z-index: 4;
+    inset: -14%;
+    display: block;
+    pointer-events: none;
+    will-change: transform;
+}
+
+.bunker-backdrop__dust--far {
+    opacity: .24;
+    background-image:
+        radial-gradient(circle, rgba(255, 239, 190, .7) 0 1px, transparent 1.7px),
+        radial-gradient(circle, rgba(207, 194, 172, .52) 0 .7px, transparent 1.4px);
+    background-position: 13px 27px, 51px 8px;
+    background-size: 91px 83px, 137px 119px;
+    filter: blur(.2px);
+    animation: bunker-dust-far 34s linear infinite;
+}
+
+.bunker-backdrop__dust--near {
+    opacity: .18;
+    background-image:
+        radial-gradient(ellipse, rgba(255, 232, 170, .68) 0 1.5px, transparent 2.4px),
+        radial-gradient(circle, rgba(245, 239, 228, .48) 0 1px, transparent 2px);
+    background-position: 22px 14px, 74px 61px;
+    background-size: 173px 149px, 229px 187px;
+    filter: blur(.45px);
+    animation: bunker-dust-near 23s linear infinite;
+}
+
+.bunker-backdrop__dust--near::after {
+    content: "";
+    position: absolute;
+    right: -8%;
+    bottom: 3%;
+    left: -8%;
+    height: 24%;
+    background: radial-gradient(ellipse at 50% 100%, rgba(214, 183, 81, .12), transparent 67%);
+    filter: blur(20px);
+}
+
+@keyframes bunker-dust-far {
+    from { transform: translate3d(-2%, 4%, 0) rotate(0); }
+    to { transform: translate3d(5%, -7%, 0) rotate(.8deg); }
+}
+
+@keyframes bunker-dust-near {
+    from { transform: translate3d(4%, 8%, 0) rotate(.5deg); }
+    to { transform: translate3d(-5%, -9%, 0) rotate(-.6deg); }
+}
+
 .bunker-backdrop__wall,
 .bunker-backdrop__beam,
 .bunker-backdrop__pipe,
@@ -209,9 +261,15 @@ body {
             inset 0 0 0 2px rgba(214, 183, 81, .1);
     }
     .bunker-vent { display: none; }
+    .bunker-backdrop__dust--near { opacity: .09; }
+    .bunker-backdrop__dust--far { opacity: .13; }
 }
 
 @media (min-width: 861px) and (max-width: 1500px) {
     .bunker-backdrop__detail--valve { left: -48px; width: 220px; opacity: .13; }
     .bunker-backdrop__detail--hazard { right: 10px; width: 96px; opacity: .11; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .bunker-backdrop__dust { animation: none; }
 }

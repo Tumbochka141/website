@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Мафия — городская ролевая игра в Eulennest">
+    <title>Мафия — Eulennest</title>
+    <link rel="icon" type="image/png" href="img/gashich.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&amp;family=Manrope:wght@400;500;600;700&amp;family=Unbounded:wght@600;700;800&amp;display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="mafia.css">
+</head>
+<body>
+    <input class="view-input" type="radio" name="preview-view" id="preview-lobby" checked>
+    <input class="view-input" type="radio" name="preview-view" id="preview-game">
+    <input class="view-input" type="radio" name="preview-view" id="preview-day">
+    <input class="view-input" type="radio" name="preview-view" id="preview-vote">
+    <input class="view-input" type="radio" name="preview-view" id="preview-result">
+
+    <div class="city-backdrop" aria-hidden="true">
+        <span class="city-backdrop__moon"></span>
+        <span class="city-backdrop__building city-backdrop__building--one"></span>
+        <span class="city-backdrop__building city-backdrop__building--two"></span>
+        <span class="city-backdrop__building city-backdrop__building--three"></span>
+        <span class="city-backdrop__mist"></span>
+    </div>
+
+    <header class="site-header">
+        <a class="header-back" href="catalog.html" aria-label="Назад в каталог">←</a>
+        <div class="header-game">
+            <span>Городская ролевая игра</span>
+            <strong>Мафия</strong>
+        </div>
+        <nav class="site-nav" aria-label="Основная навигация">
+            <a href="index.html">Гнездо</a>
+            <a class="is-active" href="catalog.html">Игры</a>
+            <a href="https://discord.gg/reRVVvXVa9" target="_blank" rel="noopener noreferrer">Вечер</a>
+        </nav>
+        <div class="preview-switch" aria-label="Просмотр макета">
+            <label for="preview-lobby">Лобби</label>
+            <label for="preview-game">Ночь</label>
+            <label for="preview-day">День</label>
+            <label for="preview-vote">Голос</label>
+            <label for="preview-result">Итог</label>
+        </div>
+    </header>
+
+    <main class="mafia-page">
+        <section class="lobby-view" id="online-lobby" aria-labelledby="lobby-title">
+            <div class="lobby-intro">
+                <p class="eyebrow">Каждую ночь город делает выбор</p>
+                <h1 id="lobby-title">Город засыпает.<br><em>Мафия просыпается.</em></h1>
+                <p class="lobby-lead">Найдите тех, кто скрывается среди мирных жителей. Здесь доверие стоит дороже алиби, а один неверный голос решает судьбу города.</p>
+
+                <div class="lobby-facts" aria-label="Параметры игры">
+                    <div><strong>4–16</strong><span>игроков</span></div>
+                    <div><strong>20–60</strong><span>минут</span></div>
+                    <div><strong>4</strong><span>роли</span></div>
+                </div>
+            </div>
+
+            <section class="lobby-card" aria-label="Подключение к игре">
+                <header class="panel-heading">
+                    <div>
+                        <span>Закрытое заседание</span>
+                        <h2>Войти в город</h2>
+                    </div>
+                    <i class="status-light" aria-hidden="true"></i>
+                </header>
+
+                <label class="field">
+                    <span>Ваше имя</span>
+                    <input id="online-name" maxlength="24" value="Игрок" autocomplete="nickname">
+                </label>
+
+                <button class="button button--primary" id="create-room" type="button">
+                    <span>Создать новую комнату</span>
+                    <b aria-hidden="true">→</b>
+                </button>
+
+                <div class="divider"><span>или по приглашению</span></div>
+
+                <div class="join-row">
+                    <label class="field">
+                        <span>Код комнаты</span>
+                        <input id="room-code-input" maxlength="6" placeholder="NIGHT7" autocomplete="off">
+                    </label>
+                    <button class="button button--quiet" id="join-room" type="button">Войти</button>
+                </div>
+
+                <p class="room-info" id="room-info" hidden>
+                    Код: <button id="room-code-output" type="button"></button>
+                </p>
+
+                <section class="lobby-players" id="lobby-players" aria-labelledby="lobby-players-title" hidden>
+                    <div class="lobby-players__heading">
+                        <h3 id="lobby-players-title">Участники комнаты</h3>
+                        <span id="lobby-player-count">0 / 16</span>
+                    </div>
+
+                    <ul id="lobby-player-list" aria-live="polite"></ul>
+
+                    <div class="lobby-players__actions">
+                        <button class="button button--primary" id="start-game" type="button" hidden>
+                            <span>Запустить игру</span>
+                            <b aria-hidden="true">→</b>
+                        </button>
+                        <button class="button button--quiet" id="leave-lobby" type="button">
+                            Выйти
+                        </button>
+                    </div>
+                </section>
+
+                <p class="form-error" id="online-error" role="alert"></p>
+
+                <footer class="lobby-card__footer">
+                    <span aria-hidden="true">◆</span>
+                    <p>Роли выдаются тайно после запуска партии. Не показывайте свой экран другим игрокам.</p>
+                </footer>
+            </section>
+        </section>
+
+        <section class="game-view" aria-label="Игровой стол">
+            <section class="round-bar" aria-label="Состояние партии">
+                <div class="phase-mark">
+                    <div class="phase-content phase-content--night">
+                        <span class="phase-mark__icon" aria-hidden="true">☾</span>
+                        <div><small>Ночь 01</small><strong id="phase-name">Город засыпает</strong></div>
+                    </div>
+                    <div class="phase-content phase-content--day">
+                        <span class="phase-mark__icon phase-mark__icon--day" aria-hidden="true">☀</span>
+                        <div><small>День 02</small><strong>Город обсуждает</strong></div>
+                    </div>
+                    <div class="phase-content phase-content--vote">
+                        <span class="phase-mark__icon phase-mark__icon--vote" aria-hidden="true">◆</span>
+                        <div><small>День 02</small><strong>Решение города</strong></div>
+                    </div>
+                    <div class="phase-content phase-content--result">
+                        <span class="phase-mark__icon phase-mark__icon--result" aria-hidden="true">✦</span>
+                        <div><small>Партия окончена</small><strong>Город просыпается</strong></div>
+                    </div>
+                </div>
+                <div class="round-stat"><small>В живых</small><strong><b id="players-alive">7</b> / <b id="players-total">8</b></strong></div>
+                <div class="round-stat"><small>Действия</small><strong>2 / 3</strong></div>
+                <div class="room-chip"><small>Комната</small><button type="button">NIGHT7</button></div>
+            </section>
+
+            <div class="game-layout">
+                <aside class="role-column">
+                    <article class="role-card" id="role-card" data-role="">
+                        <div class="role-card__topline"><span>Ваша тайная роль</span><i>01</i></div>
+                        <div class="role-card__symbol" id="role-symbol" aria-hidden="true">?</div>
+                        <p>Вы играете за</p>
+                        <h2 id="role-name">Роль скрыта</h2>
+                        <div class="role-card__rule"></div>
+                        <p class="role-card__description" id="role-description">Записка откроется после начала партии.</p>
+                        <div class="role-card__team" id="role-team" hidden>
+                            <small>Ваши союзники</small>
+                            <div id="role-team-list"></div>
+                        </div>
+                    </article>
+
+                    <section class="mini-panel" aria-labelledby="rules-title">
+                        <div class="mini-panel__heading"><span id="rules-title">Цель роли</span><b>?</b></div>
+                        <p id="role-goal">Дождитесь начала партии и не показывайте записку другим игрокам.</p>
+                    </section>
+                </aside>
+
+                <section class="table-panel" aria-labelledby="table-title">
+                    <header class="table-heading">
+                        <div class="phase-title phase-title--night"><span>Закрытое собрание</span><h1 id="table-title">Кого выберет мафия?</h1></div>
+                        <div class="phase-title phase-title--day"><span>Открытое обсуждение</span><h1>Кому город ещё доверяет?</h1></div>
+                        <div class="phase-title phase-title--vote"><span>Последнее слово</span><h1>Кто покинет город?</h1></div>
+                        <div class="phase-title phase-title--result"><span>Роли раскрыты</span><h1>Мафия захватила город</h1></div>
+                        <p class="phase-timer"><i></i> <span class="phase-timer__night">Осталось 00:38</span><span class="phase-timer__day">Осталось 02:14</span><span class="phase-timer__vote">6 из 7 голосов</span><span class="phase-timer__result">Партия завершена</span></p>
+                    </header>
+
+                    <div class="player-grid" id="player-list">
+                        <button class="player-card" type="button" data-player-id="anna">
+                            <span class="avatar">А</span>
+                            <span class="player-card__copy"><strong>Анна</strong><small>Мирный житель?</small></span>
+                            <i class="player-card__vote">0</i>
+                        </button>
+                        <button class="player-card is-selected" type="button" data-player-id="dmitry">
+                            <span class="avatar">Д</span>
+                            <span class="player-card__copy"><strong>Дмитрий</strong><small>Выбранная цель</small></span>
+                            <i class="player-card__vote">✓</i>
+                        </button>
+                        <button class="player-card" type="button" data-player-id="vera">
+                            <span class="avatar">В</span>
+                            <span class="player-card__copy"><strong>Вера</strong><small>Мирный житель?</small></span>
+                            <i class="player-card__vote">1</i>
+                        </button>
+                        <button class="player-card is-you" type="button" data-player-id="you" disabled>
+                            <span class="avatar">ВЫ</span>
+                            <span class="player-card__copy"><strong>Саша</strong><small>Это вы · Мафия</small></span>
+                            <i class="player-card__vote">—</i>
+                        </button>
+                        <button class="player-card" type="button" data-player-id="mark">
+                            <span class="avatar">М</span>
+                            <span class="player-card__copy"><strong>Марк</strong><small>Ваш союзник</small></span>
+                            <i class="player-card__vote">1</i>
+                        </button>
+                        <button class="player-card" type="button" data-player-id="liza">
+                            <span class="avatar">Л</span>
+                            <span class="player-card__copy"><strong>Лиза</strong><small>Мирный житель?</small></span>
+                            <i class="player-card__vote">0</i>
+                        </button>
+                        <button class="player-card is-dead" type="button" data-player-id="roman" disabled>
+                            <span class="avatar">Р</span>
+                            <span class="player-card__copy"><strong>Роман</strong><small>Покинул игру</small></span>
+                            <i class="player-card__vote">×</i>
+                        </button>
+                        <button class="player-card" type="button" data-player-id="nina">
+                            <span class="avatar">Н</span>
+                            <span class="player-card__copy"><strong>Нина</strong><small>Мирный житель?</small></span>
+                            <i class="player-card__vote">0</i>
+                        </button>
+                    </div>
+
+                    <section class="action-panel phase-action phase-action--night" id="action-panel">
+                        <div>
+                            <span class="action-panel__number">01</span>
+                            <p><small>Ночное действие</small><strong>Цель: Дмитрий</strong></p>
+                        </div>
+                        <button class="button button--danger" type="button" id="confirm-action">Подтвердить выбор</button>
+                    </section>
+
+                    <section class="action-panel phase-action phase-action--day">
+                        <div>
+                            <span class="action-panel__number">02</span>
+                            <p><small>Обсуждение</small><strong>Слушайте алиби других игроков</strong></p>
+                        </div>
+                        <button class="button button--quiet" type="button">Я готов голосовать</button>
+                    </section>
+
+                    <section class="action-panel phase-action phase-action--vote">
+                        <div>
+                            <span class="action-panel__number">03</span>
+                            <p><small>Ваш голос</small><strong>Кандидат: Дмитрий</strong></p>
+                        </div>
+                        <button class="button button--danger" type="button">Отдать голос</button>
+                    </section>
+
+                    <section class="result-panel phase-action phase-action--result">
+                        <span class="result-panel__seal" aria-hidden="true">♠</span>
+                        <div><small>Победившая сторона</small><strong>Мафия</strong><p>Последний мирный житель больше не может остановить преступный город.</p></div>
+                        <button class="button button--primary" type="button"><span>Новая партия</span><b>→</b></button>
+                    </section>
+                </section>
+
+                <aside class="event-column">
+                    <section class="event-panel" aria-labelledby="event-title">
+                        <header class="event-panel__heading">
+                            <div><span>Хроника</span><h2 id="event-title">События города</h2></div>
+                            <i aria-hidden="true"></i>
+                        </header>
+                        <ol class="event-log" id="event-log">
+                            <li><time>22:04</time><p><strong>Наступила ночь.</strong><span>Город закрывает глаза.</span></p></li>
+                            <li><time>22:03</time><p><strong>Роман покинул игру.</strong><span>Его роль: мирный житель.</span></p></li>
+                            <li><time>22:02</time><p><strong>Голосование окончено.</strong><span>Получено 8 голосов.</span></p></li>
+                            <li class="is-muted"><time>21:58</time><p><strong>Началось обсуждение.</strong><span>У города было 3 минуты.</span></p></li>
+                        </ol>
+                    </section>
+
+                    <button class="leave-button" id="leave-room" type="button">Покинуть комнату <span>↗</span></button>
+                </aside>
+            </div>
+        </section>
+    </main>
+
+    <script type="module" src="data/mafia/mafia.js"></script>
+</body>
+</html>

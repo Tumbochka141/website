@@ -46,6 +46,10 @@ const ui = {
     playersAlive: select("#players-alive"),
     playersTotal: select("#players-total"),
     nextPhase: select("#next-phase"),
+    turnPanel: select("#turn-panel"),
+    turnKicker: select("#turn-kicker"),
+    turnTitle: select("#turn-title"),
+    turnDescription: select("#turn-description"),
     finishTurn: select("#finish-turn"),
     characterTraits: select("#character-traits"),
     specialControls: select("#special-controls"),
@@ -69,7 +73,6 @@ const ui = {
     logTemplate: select("#log-entry-template"),
     hostDossier: select("#host-dossier"),
     hostTraits: select("#host-character-traits"),
-    hostRevealTrait: select("#host-reveal-trait"),
     hostFinishTurn: select("#host-finish-turn"),
     scenarioCards: {
         catastrophe: select("#catastrophe-card"),
@@ -174,7 +177,11 @@ function bindEvents() {
         if (trait) run(() => sendCommand("REVEAL_TRAIT", { trait }));
     });
 
-    ui.hostRevealTrait.addEventListener("click", () => run(revealNextHostTrait));
+    ui.hostTraits.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-host-reveal-trait]");
+        if (!button || button.disabled) return;
+        run(() => sendCommand("REVEAL_TRAIT", { trait: button.dataset.hostRevealTrait }));
+    });
 
     ui.voteList.addEventListener("click", (event) => {
         const button = event.target.closest("[data-vote-target]");
@@ -487,6 +494,7 @@ function renderRosters(players, order, currentIndex) {
 
     ui.playerRoster.replaceChildren(...entries.map(([id, player]) => {
         const row = document.createElement("p");
+        const isCurrent = id === currentId;
         const summary = document.createElement("span");
         const name = document.createElement("b");
         const traits = document.createElement("small");
@@ -499,6 +507,8 @@ function renderRosters(players, order, currentIndex) {
         status.textContent = playerStatus(player, id === currentId, id);
         summary.append(name, traits);
         row.append(summary, status);
+        row.classList.toggle("is-current-turn", isCurrent);
+        if (isCurrent) row.setAttribute("aria-current", "true");
         return row;
     }));
 
@@ -528,6 +538,7 @@ function renderRosters(players, order, currentIndex) {
 
     const currentPlayer = players[currentId];
     ui.activePlayerLabel.textContent = currentPlayer ? `Ход: ${currentPlayer.name}` : getPhaseLabel(publicState?.phase);
+    ui.activePlayerLabel.classList.toggle("has-active-turn", Boolean(currentPlayer));
 }
 
 function playerStatus(player, isCurrent, playerId) {
@@ -546,6 +557,27 @@ function renderPrivateState() {
     const myTurn = publicState?.phase === PHASES.REVEAL
         && publicState.order?.[publicState.currentPlayerIndex] === myId;
 
+    const currentPlayerId = publicState?.order?.[publicState.currentPlayerIndex];
+    const currentPlayer = currentPlayerId ? publicState?.players?.[currentPlayerId] : null;
+    const revealPhase = publicState?.phase === PHASES.REVEAL;
+
+    ui.turnPanel.classList.toggle("is-my-turn", myTurn);
+    ui.turnPanel.classList.toggle("is-waiting-turn", revealPhase && !myTurn);
+
+    if (myTurn) {
+        ui.turnKicker.textContent = "Сейчас ваш ход";
+        ui.turnTitle.textContent = "Раскройте одну характеристику";
+        ui.turnDescription.textContent = "Выберите характеристику ниже, затем завершите ход.";
+    } else if (revealPhase && currentPlayer) {
+        ui.turnKicker.textContent = "Сейчас ходит";
+        ui.turnTitle.textContent = currentPlayer.name;
+        ui.turnDescription.textContent = "Дождитесь своего хода. Активный игрок должен раскрыть характеристику.";
+    } else {
+        ui.turnKicker.textContent = "Текущая фаза";
+        ui.turnTitle.textContent = getPhaseLabel(publicState?.phase);
+        ui.turnDescription.textContent = "Следите за состоянием игры и указаниями ведущего.";
+    }
+
     for (const card of ui.characterTraits.querySelectorAll("[data-trait]")) {
         const trait = card.dataset.trait;
         const valueElement = card.querySelector("[data-trait-value]");
@@ -561,7 +593,6 @@ function renderPrivateState() {
     const canFinish = myTurn && (Boolean(myPublicState?.revealedThisTurn) || !hasHiddenTraits);
     ui.finishTurn.disabled = !canFinish;
     ui.hostFinishTurn.disabled = !canFinish;
-    ui.hostRevealTrait.disabled = !myTurn || !hasHiddenTraits || Boolean(myPublicState?.revealedThisTurn);
     ui.hostDossier.hidden = !isHost() || !myPublicState;
 
     const specialRevealed = Boolean(myPublicState?.revealedTraits?.special);
@@ -607,6 +638,16 @@ function renderPrivateState() {
 
     for (const element of ui.hostTraits.querySelectorAll("[data-host-trait]")) {
         element.textContent = privateState?.[element.dataset.hostTrait] || "Не назначено";
+    }
+
+    for (const card of ui.hostTraits.querySelectorAll("[data-host-trait-card]")) {
+        const trait = card.dataset.hostTraitCard;
+        const revealed = Boolean(myPublicState?.revealedTraits?.[trait]);
+        const button = card.querySelector("[data-host-reveal-trait]");
+        card.classList.toggle("is-revealed", revealed);
+        button.textContent = revealed ? "Раскрыто" : "Раскрыть";
+        button.disabled = !myTurn || revealed || Boolean(myPublicState?.revealedThisTurn);
+        button.setAttribute("aria-pressed", String(revealed));
     }
 }
 
@@ -665,6 +706,14 @@ function renderScenarios() {
         const scenario = publicState[scenarioType];
         const card = ui.scenarioCards[scenarioType];
         const button = ui.scenarioButtons[scenarioType];
+        const label = card.querySelector(".scenario-card__label");
+        label.textContent = scenarioType === "bunker" && scenario?.revealedRound
+            ? `Бункер · раунд ${scenario.revealedRound}`
+            : scenarioType === "catastrophe"
+                ? "Катастрофа"
+                : scenarioType === "threat"
+                    ? "Угроза"
+                    : "Бункер";
         card.querySelector("[data-card-title]").textContent = scenario?.title || "Данные засекречены";
         card.querySelector("[data-card-description]").textContent = scenario?.description || "Данные засекречены.";
         button.hidden = !isHost() || scenario?.status === "revealed";
@@ -694,7 +743,9 @@ function renderScenarios() {
                     ? "Угроза"
                     : scenarioType === "exile"
                         ? "У изгнанных"
-                        : "Бункер";
+                        : scenario.revealedRound
+                            ? `Бункер · раунд ${scenario.revealedRound}`
+                            : "Бункер";
             title.textContent = scenario.title;
             description.textContent = scenario.description;
             card.append(label, title, description);
@@ -831,14 +882,6 @@ function renderLog() {
         row.querySelector("span").textContent = event.message;
         return row;
     }));
-}
-
-async function revealNextHostTrait() {
-    const myId = multiplayer.user.uid;
-    const player = publicState?.players?.[myId];
-    const trait = TRAIT_KEYS.find((key) => !player?.revealedTraits?.[key]);
-    if (!trait) throw new Error("Все характеристики уже раскрыты.");
-    await sendCommand("REVEAL_TRAIT", { trait });
 }
 
 async function startGame() {

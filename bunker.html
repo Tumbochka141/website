@@ -29,6 +29,8 @@
         <span class="bunker-backdrop__console"><i></i><i></i><i></i><i></i></span>
         <span class="bunker-backdrop__sector">СЕКТОР 04 · ШЛЮЗ</span>
         <span class="bunker-backdrop__floor"></span>
+        <span class="bunker-backdrop__dust bunker-backdrop__dust--far"></span>
+        <span class="bunker-backdrop__dust bunker-backdrop__dust--near"></span>
     </div>
 
     <header class="site-header">
@@ -227,10 +229,10 @@
                     </section>
 
                     <aside class="player-aside">
-                        <section class="panel turn-panel">
-                            <span>Ваш ход</span>
-                            <h2>Раскройте одну характеристику</h2>
-                            <p>После этого передайте ход следующему участнику.</p>
+                        <section class="panel turn-panel" id="turn-panel">
+                            <span id="turn-kicker">Ваш ход</span>
+                            <h2 id="turn-title">Раскройте одну характеристику</h2>
+                            <p id="turn-description">После этого передайте ход следующему участнику.</p>
                             <button class="button button--primary" id="finish-turn" type="button">Завершить ход</button>
                         </section>
                         <section class="panel compact-roster" aria-labelledby="player-roster-title">
@@ -271,15 +273,45 @@
                         <b>Открыть карту</b>
                     </summary>
                     <div class="host-dossier__body">
-                        <p>Эту часть экрана видит только ведущий. Характеристики будут выданы вместе с остальными игроками.</p>
+                        <p>Эту часть экрана видит только ведущий. Во время своего хода выберите характеристику, которую хотите раскрыть.</p>
                         <div class="host-traits" id="host-character-traits">
-                            <span><small>Профессия</small><strong data-host-trait="profession">Засекречено</strong></span>
-                            <span><small>Здоровье</small><strong data-host-trait="health">Засекречено</strong></span>
-                            <span><small>Биоданные</small><strong data-host-trait="biology">Засекречено</strong></span>
-                            <span><small>Особая карта</small><strong data-host-trait="special">Засекречено</strong></span>
+                            <article class="host-trait-card" data-host-trait-card="profession">
+                                <small>Профессия</small>
+                                <strong data-host-trait="profession">Засекречено</strong>
+                                <button type="button" data-host-reveal-trait="profession">Раскрыть</button>
+                            </article>
+                            <article class="host-trait-card" data-host-trait-card="health">
+                                <small>Здоровье</small>
+                                <strong data-host-trait="health">Засекречено</strong>
+                                <button type="button" data-host-reveal-trait="health">Раскрыть</button>
+                            </article>
+                            <article class="host-trait-card" data-host-trait-card="biology">
+                                <small>Биоданные</small>
+                                <strong data-host-trait="biology">Засекречено</strong>
+                                <button type="button" data-host-reveal-trait="biology">Раскрыть</button>
+                            </article>
+                            <article class="host-trait-card" data-host-trait-card="fact">
+                                <small>Факт</small>
+                                <strong data-host-trait="fact">Засекречено</strong>
+                                <button type="button" data-host-reveal-trait="fact">Раскрыть</button>
+                            </article>
+                            <article class="host-trait-card" data-host-trait-card="hobby">
+                                <small>Хобби</small>
+                                <strong data-host-trait="hobby">Засекречено</strong>
+                                <button type="button" data-host-reveal-trait="hobby">Раскрыть</button>
+                            </article>
+                            <article class="host-trait-card" data-host-trait-card="baggage">
+                                <small>Багаж</small>
+                                <strong data-host-trait="baggage">Засекречено</strong>
+                                <button type="button" data-host-reveal-trait="baggage">Раскрыть</button>
+                            </article>
+                            <article class="host-trait-card host-trait-card--special" data-host-trait-card="special">
+                                <small>Особая карта</small>
+                                <strong data-host-trait="special">Засекречено</strong>
+                                <button type="button" data-host-reveal-trait="special">Раскрыть</button>
+                            </article>
                         </div>
                         <div class="host-player-actions">
-                            <button class="button button--primary" id="host-reveal-trait" type="button">Раскрыть характеристику</button>
                             <button class="button button--quiet" id="host-finish-turn" type="button">Завершить свой ход</button>
                         </div>
                     </div>

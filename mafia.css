@@ -1,0 +1,304 @@
+:root {
+    --ink: #061827;
+    --ink-soft: #0b2942;
+    --panel: rgba(8, 34, 54, .94);
+    --panel-light: #123b5e;
+    --paper: #f5efe4;
+    --muted: #b8ad9a;
+    --red: #4a1322;
+    --red-bright: #8f3045;
+    --red-dark: #2f0c16;
+    --gold: #d6b751;
+    --line: rgba(214, 183, 81, .22);
+    --display: "Unbounded", system-ui, sans-serif;
+    --body: "Manrope", system-ui, sans-serif;
+    --serif: "Cormorant Garamond", Georgia, serif;
+}
+
+* { box-sizing: border-box; }
+
+html { min-width: 320px; min-height: 100%; background: var(--ink); }
+
+body {
+    min-width: 320px;
+    min-height: 100vh;
+    margin: 0;
+    overflow-x: hidden;
+    color: var(--paper);
+    font-family: var(--body);
+    background:
+        radial-gradient(circle at 52% -10%, rgba(106, 38, 56, .32), transparent 38%),
+        radial-gradient(circle at 20% 22%, rgba(23, 74, 112, .45), transparent 42%),
+        linear-gradient(150deg, #103a60, #061827 72%);
+}
+
+button, input { font: inherit; }
+button, label[for] { cursor: pointer; }
+button:focus-visible, input:focus-visible, a:focus-visible, label:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+.view-input { position: fixed; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+
+.city-backdrop { position: fixed; z-index: 0; inset: 0; overflow: hidden; pointer-events: none; }
+.city-backdrop::before { content: ""; position: absolute; inset: 0; opacity: .22; background-image: linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.018) 1px, transparent 1px); background-size: 72px 72px; mask-image: linear-gradient(to bottom, #000, transparent 75%); }
+.city-backdrop__moon { position: absolute; top: 120px; right: 9vw; width: 210px; height: 210px; border-radius: 50%; background: #e7dfd0; box-shadow: 0 0 70px rgba(238, 231, 219, .15); opacity: .055; }
+.city-backdrop__building { position: absolute; bottom: 0; width: 25vw; min-width: 260px; background: #04131f; clip-path: polygon(0 18%, 12% 18%, 12% 8%, 21% 8%, 21% 30%, 32% 30%, 32% 0, 46% 0, 46% 20%, 60% 20%, 60% 11%, 72% 11%, 72% 34%, 84% 34%, 84% 16%, 100% 16%, 100% 100%, 0 100%); opacity: .84; }
+.city-backdrop__building--one { left: 0; height: 42vh; }
+.city-backdrop__building--two { left: 31%; height: 31vh; transform: scaleX(-1); }
+.city-backdrop__building--three { right: 0; height: 38vh; }
+.city-backdrop__mist { position: absolute; right: -20%; bottom: -80px; left: -20%; height: 280px; background: radial-gradient(ellipse, rgba(138, 142, 151, .12), transparent 67%); filter: blur(22px); }
+
+.site-header {
+    position: relative;
+    z-index: 10;
+    display: grid;
+    grid-template-columns: 42px auto 1fr auto;
+    align-items: center;
+    gap: 20px;
+    width: min(1260px, calc(100% - 40px));
+    min-height: 78px;
+    margin: 18px auto 0;
+    padding: 0 22px;
+    color: var(--red-dark);
+    background: rgba(245, 239, 228, .96);
+    border: 1px solid rgba(255, 232, 120, .7);
+    border-radius: 12px;
+    box-shadow: 0 18px 50px rgba(0, 0, 0, .25);
+    backdrop-filter: blur(18px);
+}
+
+.header-back { display: grid; place-items: center; width: 36px; height: 36px; color: var(--red); border: 1px solid rgba(74,19,34,.14); border-radius: 50%; text-decoration: none; transition: .2s ease; }
+.header-back:hover { color: var(--red-dark); border-color: var(--gold); transform: translateX(-2px); }
+.header-game { display: grid; gap: 3px; padding-right: 22px; border-right: 1px solid rgba(74,19,34,.15); }
+.header-game span { color: #866f72; font-size: .58rem; font-weight: 700; letter-spacing: .13em; text-transform: uppercase; }
+.header-game strong { font: 800 1.16rem/1 var(--display); letter-spacing: -.04em; }
+.site-nav { display: flex; justify-content: center; gap: clamp(20px, 4vw, 52px); }
+.site-nav a { padding: 29px 2px 25px; color: var(--red); border-bottom: 2px solid transparent; font: 700 .62rem/1 var(--display); letter-spacing: .12em; text-decoration: none; text-transform: uppercase; opacity: .48; }
+.site-nav a:hover, .site-nav a.is-active { border-color: var(--gold); opacity: 1; }
+.preview-switch { display: flex; padding: 4px; background: rgba(74,19,34,.05); border: 1px solid rgba(74,19,34,.14); border-radius: 9px; }
+.preview-switch label { padding: 9px 13px; color: #806c6f; border-radius: 6px; font-size: .68rem; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; }
+#preview-lobby:checked ~ .site-header label[for="preview-lobby"],
+#preview-game:checked ~ .site-header label[for="preview-game"],
+#preview-day:checked ~ .site-header label[for="preview-day"],
+#preview-vote:checked ~ .site-header label[for="preview-vote"],
+#preview-result:checked ~ .site-header label[for="preview-result"] { color: #fff; background: var(--red); }
+
+.mafia-page { position: relative; z-index: 1; width: min(1260px, calc(100% - 40px)); margin: 0 auto; padding: 42px 0 70px; }
+.lobby-view, .game-view { display: none; }
+#preview-lobby:checked ~ .mafia-page .lobby-view { display: grid; }
+#preview-game:checked ~ .mafia-page .game-view,
+#preview-day:checked ~ .mafia-page .game-view,
+#preview-vote:checked ~ .mafia-page .game-view,
+#preview-result:checked ~ .mafia-page .game-view { display: block; }
+
+.lobby-view { grid-template-columns: minmax(0, 1.15fr) minmax(390px, .72fr); align-items: center; gap: clamp(48px, 8vw, 110px); min-height: calc(100vh - 170px); padding: 20px clamp(0px, 3vw, 42px); }
+.eyebrow { margin: 0 0 18px; color: var(--red-bright); font: 700 .68rem/1 var(--display); letter-spacing: .18em; text-transform: uppercase; }
+.lobby-intro h1 { max-width: 790px; margin: 0; font: 700 clamp(3rem, 6vw, 5.7rem)/.94 var(--serif); letter-spacing: -.045em; }
+.lobby-intro h1 em { color: transparent; font-style: normal; -webkit-text-stroke: 1px rgba(238, 231, 219, .7); }
+.lobby-lead { max-width: 640px; margin: 28px 0 36px; color: #bbb7b0; font: 500 clamp(1rem, 1.5vw, 1.15rem)/1.75 var(--body); }
+.lobby-facts { display: flex; width: fit-content; overflow: hidden; border: 1px solid var(--line); border-radius: 10px; background: rgba(255,255,255,.025); }
+.lobby-facts div { display: grid; min-width: 116px; gap: 3px; padding: 16px 20px; border-right: 1px solid var(--line); }
+.lobby-facts div:last-child { border: 0; }
+.lobby-facts strong { color: var(--gold); font: 700 1.35rem/1 var(--display); }
+.lobby-facts span { color: var(--muted); font-size: .68rem; letter-spacing: .06em; text-transform: uppercase; }
+
+.lobby-card { position: relative; overflow: hidden; padding: 30px; background: linear-gradient(145deg, rgba(255,255,255,.045), transparent 36%), rgba(8, 34, 54, .96); border: 1px solid rgba(214,183,81,.35); border-radius: 14px; box-shadow: 0 34px 90px rgba(3,17,29,.42); }
+.lobby-card::before { content: ""; position: absolute; top: 0; right: 0; left: 0; height: 3px; background: linear-gradient(90deg, transparent, var(--red-bright), transparent); }
+.panel-heading { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 27px; }
+.panel-heading div { display: grid; gap: 6px; }
+.panel-heading span { color: var(--red-bright); font-size: .6rem; font-weight: 800; letter-spacing: .15em; text-transform: uppercase; }
+.panel-heading h2 { margin: 0; font: 700 2.15rem/1 var(--serif); }
+.status-light { width: 9px; height: 9px; margin-top: 7px; border-radius: 50%; background: #5fa76e; box-shadow: 0 0 13px rgba(95,167,110,.65); }
+.field { display: grid; min-width: 0; gap: 8px; }
+.field > span { color: var(--muted); font-size: .64rem; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; }
+.field input { width: 100%; height: 50px; padding: 0 15px; color: var(--paper); caret-color: var(--gold); background: rgba(3, 21, 34, .68); border: 1px solid var(--line); border-radius: 7px; outline: 0; }
+.field input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(200,166,107,.08); }
+.field input::placeholder { color: #66666a; letter-spacing: .12em; }
+.button { min-height: 50px; padding: 0 18px; color: var(--paper); border: 0; border-radius: 7px; font-size: .72rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; transition: transform .18s ease, background .18s ease, border-color .18s ease; }
+.button:hover { transform: translateY(-2px); }
+.button--primary { display: flex; align-items: center; justify-content: space-between; width: 100%; margin-top: 14px; padding-inline: 20px; background: var(--red); }
+.button--primary:hover, .button--danger:hover { background: var(--red-bright); }
+.button--primary b { font-size: 1.1rem; }
+.button--quiet { background: rgba(255,255,255,.055); border: 1px solid var(--line); }
+.button--quiet:hover { border-color: var(--gold); }
+.divider { display: flex; align-items: center; gap: 12px; margin: 23px 0; color: #6e6d70; font-size: .62rem; letter-spacing: .08em; text-transform: uppercase; }
+.divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.join-row { display: grid; grid-template-columns: 1fr 112px; align-items: end; gap: 10px; }
+.room-info, .form-error { min-height: 0; margin: 10px 0 0; font-size: .75rem; }
+.room-info button { padding: 0; color: var(--gold); background: none; border: 0; font: 700 .75rem/1 var(--display); letter-spacing: .1em; }
+.form-error { color: #e26b78; }
+.lobby-players { margin-top: 18px; padding: 15px; background: rgba(3,21,34,.42); border: 1px solid var(--line); border-radius: 8px; }
+.lobby-players__heading { display: flex; align-items: center; justify-content: space-between; gap: 15px; padding-bottom: 11px; border-bottom: 1px solid var(--line); }
+.lobby-players__heading h3 { margin: 0; font: 700 1.05rem/1 var(--serif); }
+.lobby-players__heading span { color: var(--gold); font: 700 .58rem/1 var(--display); letter-spacing: .08em; }
+#lobby-player-list { display: grid; gap: 7px; max-height: 170px; margin: 12px 0 0; padding: 0; overflow-y: auto; list-style: none; }
+#lobby-player-list li { display: flex; align-items: center; justify-content: space-between; min-height: 34px; padding: 7px 9px; color: var(--paper); background: rgba(255,255,255,.025); border-radius: 6px; font-size: .7rem; }
+#lobby-player-list li::after { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #5fa76e; box-shadow: 0 0 8px rgba(95,167,110,.5); }
+.lobby-players__actions { display: grid; grid-template-columns: 1fr auto; gap: 9px; margin-top: 13px; padding-top: 13px; border-top: 1px solid var(--line); }
+.lobby-players__actions .button { margin: 0; }
+.lobby-players__actions .button--quiet { min-width: 92px; }
+.lobby-card__footer { display: flex; gap: 13px; margin: 25px -30px -30px; padding: 17px 30px; color: var(--muted); background: rgba(0,0,0,.2); border-top: 1px solid var(--line); }
+.lobby-card__footer span { color: var(--gold); }
+.lobby-card__footer p { margin: 0; font-size: .7rem; line-height: 1.55; }
+
+.round-bar { display: grid; grid-template-columns: minmax(280px, 1fr) auto auto auto; align-items: center; gap: 14px; min-height: 78px; margin-bottom: 16px; padding: 12px 18px; background: var(--panel); border: 1px solid var(--line); border-radius: 11px; }
+.phase-mark { display: flex; align-items: center; gap: 13px; }
+.phase-mark .phase-content { display: none; align-items: center; gap: 13px; }
+#preview-game:checked ~ .mafia-page .phase-content--night,
+#preview-day:checked ~ .mafia-page .phase-content--day,
+#preview-vote:checked ~ .mafia-page .phase-content--vote,
+#preview-result:checked ~ .mafia-page .phase-content--result { display: flex; }
+.phase-mark__icon { display: grid; place-items: center; width: 46px; height: 46px; color: var(--gold); background: rgba(200,166,107,.07); border: 1px solid rgba(200,166,107,.22); border-radius: 50%; font: 700 1.55rem/1 var(--serif); }
+.phase-mark__icon--day { color: #ffe878; background: rgba(255,232,120,.08); }
+.phase-mark__icon--vote { color: #f5efe4; background: rgba(74,19,34,.28); border-color: rgba(143,48,69,.6); }
+.phase-mark__icon--result { color: var(--red-bright); background: rgba(74,19,34,.17); }
+.phase-mark div, .round-stat, .room-chip { display: grid; gap: 4px; }
+.phase-mark small, .round-stat small, .room-chip small { color: var(--muted); font-size: .55rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.phase-mark strong { font: 700 1.15rem/1 var(--display); }
+.round-stat { min-width: 94px; padding: 4px 18px; border-left: 1px solid var(--line); }
+.round-stat strong { font: 700 .9rem/1 var(--display); }
+.room-chip { min-width: 112px; padding: 10px 13px; background: rgba(255,255,255,.035); border: 1px solid var(--line); border-radius: 7px; }
+.room-chip button { padding: 0; color: var(--gold); background: 0; border: 0; text-align: left; font: 700 .77rem/1 var(--display); letter-spacing: .12em; }
+
+.game-layout { display: grid; grid-template-columns: 244px minmax(480px, 1fr) 274px; align-items: start; gap: 16px; }
+.role-column, .event-column { display: grid; gap: 16px; }
+.role-card { position: relative; min-height: 390px; overflow: hidden; padding: 19px; background: linear-gradient(150deg, #355c77, #0b2942 74%); border: 1px solid rgba(214,183,81,.42); border-radius: 3px 11px 11px 3px; box-shadow: -7px 0 0 #d6c8ae, -9px 0 0 rgba(214,183,81,.35), 0 22px 45px rgba(3,17,29,.3); transform: rotate(-.35deg); }
+.role-card[data-role="mafia"] { background: linear-gradient(150deg, #6a2638, #30101b 74%); }
+.role-card[data-role="citizen"] { background: linear-gradient(150deg, #35698e, #0b2942 74%); }
+.role-card[data-role="doctor"] { background: linear-gradient(150deg, #34716d, #123d43 74%); }
+.role-card[data-role="detective"] { background: linear-gradient(150deg, #5b526f, #28243a 74%); }
+.role-card[data-role="escort"] { background: linear-gradient(150deg, #7b4967, #3d2036 74%); }
+.role-card[data-role="maniac"] { background: linear-gradient(150deg, #55484a, #21191c 74%); }
+.role-card[data-role="jester"] { background: linear-gradient(150deg, #8a6a32, #433015 74%); }
+.role-card::before { content: ""; position: absolute; inset: 8px; border: 1px solid rgba(238,231,219,.16); border-radius: 7px; pointer-events: none; }
+.role-card::after { content: ""; position: absolute; top: 80px; right: -90px; width: 230px; height: 230px; border: 42px solid rgba(0,0,0,.1); border-radius: 50%; }
+.role-card__topline { position: relative; z-index: 1; display: flex; justify-content: space-between; color: rgba(238,231,219,.62); font-size: .52rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.role-card__topline i { font-style: normal; }
+.role-card__symbol { position: relative; z-index: 1; display: grid; place-items: center; width: 74px; height: 74px; margin: 38px auto 18px; color: var(--paper); border: 1px solid rgba(238,231,219,.34); border-radius: 50%; font: 700 2.2rem/1 var(--serif); }
+.role-card > p, .role-card h2 { position: relative; z-index: 1; text-align: center; }
+.role-card > p { margin: 0; color: rgba(238,231,219,.67); font-size: .6rem; letter-spacing: .1em; text-transform: uppercase; }
+.role-card h2 { margin: 4px 0 16px; font: 700 2.55rem/1 var(--serif); }
+.role-card__rule { position: relative; z-index: 1; width: 46px; height: 1px; margin: 0 auto 15px; background: rgba(238,231,219,.4); }
+.role-card .role-card__description { text-align: left; font: 500 .72rem/1.55 var(--body); letter-spacing: 0; text-transform: none; }
+.role-card__team { position: relative; z-index: 1; display: grid; gap: 7px; margin-top: 20px; padding-top: 14px; border-top: 1px solid rgba(238,231,219,.15); }
+.role-card__team small { color: rgba(238,231,219,.55); font-size: .55rem; letter-spacing: .1em; text-transform: uppercase; }
+.role-card__team strong { display: flex; align-items: center; gap: 8px; font-size: .75rem; }
+#role-team-list { display: grid; gap: 7px; }
+#role-team-list strong { min-width: 0; }
+.mini-panel { padding: 17px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
+.mini-panel__heading { display: flex; justify-content: space-between; color: var(--gold); font-size: .58rem; font-weight: 800; letter-spacing: .11em; text-transform: uppercase; }
+.mini-panel__heading b { display: grid; place-items: center; width: 18px; height: 18px; border: 1px solid var(--line); border-radius: 50%; }
+.mini-panel p { margin: 12px 0 0; color: var(--muted); font-size: .68rem; line-height: 1.55; }
+
+.table-panel { min-height: 620px; padding: 22px; background: linear-gradient(145deg, rgba(23,74,112,.18), transparent 42%), var(--panel); border: 1px solid var(--line); border-radius: 11px; }
+.table-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; padding-bottom: 19px; border-bottom: 1px solid var(--line); }
+.table-heading div { display: grid; gap: 5px; }
+.table-heading .phase-title, .phase-timer > span { display: none; }
+#preview-game:checked ~ .mafia-page .phase-title--night,
+#preview-day:checked ~ .mafia-page .phase-title--day,
+#preview-vote:checked ~ .mafia-page .phase-title--vote,
+#preview-result:checked ~ .mafia-page .phase-title--result { display: grid; }
+#preview-game:checked ~ .mafia-page .phase-timer__night,
+#preview-day:checked ~ .mafia-page .phase-timer__day,
+#preview-vote:checked ~ .mafia-page .phase-timer__vote,
+#preview-result:checked ~ .mafia-page .phase-timer__result { display: inline; }
+.table-heading span, .event-panel__heading span { color: var(--red-bright); font-size: .54rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+.table-heading h1 { margin: 0; font: 700 1.85rem/1 var(--serif); }
+.table-heading > p { display: flex; align-items: center; gap: 7px; margin: 7px 0 0; color: var(--muted); font-size: .62rem; white-space: nowrap; }
+.table-heading > p i { width: 7px; height: 7px; border-radius: 50%; background: var(--red-bright); box-shadow: 0 0 9px rgba(199,44,61,.6); }
+.player-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; margin-top: 18px; }
+.player-card { display: grid; grid-template-columns: 43px 1fr 25px; align-items: center; gap: 11px; min-width: 0; min-height: 66px; padding: 10px 12px; color: var(--paper); text-align: left; background: rgba(255,255,255,.025); border: 1px solid var(--line); border-radius: 8px; transition: .18s ease; }
+.player-card:not(:disabled):hover { transform: translateY(-2px); border-color: rgba(200,166,107,.65); background: rgba(200,166,107,.06); }
+.player-card.is-selected { background: rgba(143,23,37,.18); border-color: var(--red-bright); box-shadow: inset 3px 0 0 var(--red-bright); }
+.player-card.is-you { opacity: .8; background: rgba(143,23,37,.08); }
+.player-card.is-dead { filter: grayscale(1); opacity: .34; }
+.avatar { display: grid; place-items: center; width: 43px; height: 43px; color: var(--paper); background: linear-gradient(145deg, #393b43, #202127); border: 1px solid rgba(238,231,219,.16); border-radius: 50%; font: 700 .74rem/1 var(--display); }
+.avatar--small { width: 27px; height: 27px; font-size: .55rem; }
+.player-card__copy { display: grid; min-width: 0; gap: 4px; }
+.player-card__copy strong { overflow: hidden; font-size: .76rem; text-overflow: ellipsis; white-space: nowrap; }
+.player-card__copy small { overflow: hidden; color: var(--muted); font-size: .59rem; text-overflow: ellipsis; white-space: nowrap; }
+.player-card__vote { display: grid; place-items: center; width: 25px; height: 25px; color: var(--muted); background: rgba(0,0,0,.23); border-radius: 50%; font-size: .61rem; font-style: normal; }
+.is-selected .player-card__vote { color: #fff; background: var(--red); }
+.action-panel { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-top: 18px; padding: 15px; background: rgba(0,0,0,.2); border: 1px solid var(--line); border-radius: 9px; }
+.phase-action { display: none; }
+#preview-game:checked ~ .mafia-page .phase-action--night,
+#preview-day:checked ~ .mafia-page .phase-action--day,
+#preview-vote:checked ~ .mafia-page .phase-action--vote { display: flex; }
+.action-panel > div { display: flex; align-items: center; gap: 12px; }
+.action-panel__number { display: grid; place-items: center; width: 37px; height: 37px; color: var(--red-bright); border: 1px solid rgba(199,44,61,.35); border-radius: 50%; font: 700 .62rem/1 var(--display); }
+.action-panel p { display: grid; gap: 3px; margin: 0; }
+.action-panel small { color: var(--muted); font-size: .53rem; letter-spacing: .1em; text-transform: uppercase; }
+.action-panel strong { font-size: .73rem; }
+.button--danger { min-width: 188px; background: var(--red); }
+.result-panel { align-items: center; grid-template-columns: auto 1fr auto; gap: 17px; margin-top: 18px; padding: 17px; background: linear-gradient(100deg, rgba(74,19,34,.28), rgba(214,183,81,.06)); border: 1px solid rgba(214,183,81,.34); border-radius: 9px; }
+#preview-result:checked ~ .mafia-page .result-panel { display: grid; }
+.result-panel__seal { display: grid; place-items: center; width: 48px; height: 48px; color: var(--paper); background: var(--red); border: 1px solid var(--gold); border-radius: 50%; font: 700 1.25rem/1 var(--serif); }
+.result-panel > div { display: grid; gap: 3px; }
+.result-panel small { color: var(--gold); font-size: .52rem; font-weight: 800; letter-spacing: .11em; text-transform: uppercase; }
+.result-panel strong { font: 700 1.4rem/1 var(--serif); }
+.result-panel p { margin: 2px 0 0; color: var(--muted); font-size: .62rem; line-height: 1.4; }
+.result-panel .button--primary { min-width: 155px; margin: 0; }
+
+.event-panel { overflow: hidden; background: linear-gradient(160deg, rgba(23,74,112,.14), transparent 48%), var(--panel); border: 1px solid var(--line); border-radius: 11px; }
+.event-panel__heading { display: flex; align-items: center; justify-content: space-between; padding: 20px 18px 17px; border-bottom: 1px solid var(--line); }
+.event-panel__heading div { display: grid; gap: 5px; }
+.event-panel__heading h2 { margin: 0; font: 700 1.35rem/1 var(--serif); }
+.event-panel__heading > i { width: 7px; height: 7px; border-radius: 50%; background: #5fa76e; box-shadow: 0 0 9px rgba(95,167,110,.5); }
+.event-log { display: grid; margin: 0; padding: 3px 18px; list-style: none; }
+.event-log li { display: grid; grid-template-columns: 38px 1fr; gap: 8px; padding: 15px 0; border-bottom: 1px solid var(--line); }
+.event-log li:last-child { border: 0; }
+.event-log time { color: #68676a; font: 700 .5rem/1.5 var(--display); }
+.event-log p { display: grid; gap: 4px; margin: 0; }
+.event-log strong { font-size: .67rem; line-height: 1.35; }
+.event-log span { color: var(--muted); font-size: .59rem; line-height: 1.45; }
+.event-log .is-muted { opacity: .5; }
+.leave-button { display: flex; align-items: center; justify-content: space-between; min-height: 45px; padding: 0 15px; color: #a9a5a0; background: rgba(255,255,255,.025); border: 1px solid var(--line); border-radius: 8px; font-size: .62rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; }
+.leave-button:hover { color: #fff; border-color: var(--red-bright); }
+
+@media (max-width: 1080px) {
+    .game-layout { grid-template-columns: 220px 1fr; }
+    .event-column { grid-column: 1 / -1; grid-template-columns: 1fr auto; }
+    .event-log { grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .event-log li { grid-template-columns: 1fr; border: 0; }
+    .leave-button { align-self: stretch; }
+}
+
+@media (max-width: 820px) {
+    .site-header { grid-template-columns: 38px 1fr auto; gap: 12px; }
+    .site-nav { display: none; }
+    .lobby-view { grid-template-columns: 1fr; min-height: 0; gap: 38px; padding: 20px 0; }
+    .lobby-intro { text-align: center; }
+    .lobby-lead, .lobby-facts { margin-inline: auto; }
+    .round-bar { grid-template-columns: 1fr 1fr; }
+    .phase-mark { grid-column: 1 / -1; }
+    .game-layout { grid-template-columns: 1fr; }
+    .role-column { grid-template-columns: minmax(210px, .7fr) 1fr; }
+    .role-card { min-height: 340px; }
+    .event-column { grid-column: auto; grid-template-columns: 1fr; }
+    .event-log { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 560px) {
+    .site-header, .mafia-page { width: min(100% - 20px, 1260px); }
+    .site-header { margin-top: 10px; padding: 0 12px; }
+    .header-game span { display: none; }
+    .header-game { padding-right: 0; border: 0; }
+    .preview-switch { max-width: 230px; overflow-x: auto; }
+    .preview-switch label { flex: 0 0 auto; padding: 8px 9px; font-size: .56rem; }
+    .mafia-page { padding-top: 24px; }
+    .lobby-intro h1 { font-size: 2.75rem; }
+    .lobby-facts { width: 100%; }
+    .lobby-facts div { flex: 1; min-width: 0; padding: 13px 10px; }
+    .lobby-card { padding: 22px; }
+    .lobby-card__footer { margin: 22px -22px -22px; padding: 15px 22px; }
+    .join-row { grid-template-columns: 1fr; }
+    .round-bar { grid-template-columns: 1fr 1fr; }
+    .room-chip { grid-column: 1 / -1; }
+    .role-column { grid-template-columns: 1fr; }
+    .player-grid { grid-template-columns: 1fr; }
+    .table-panel { padding: 16px; }
+    .table-heading { display: grid; }
+    .action-panel { align-items: stretch; flex-direction: column; }
+    .result-panel { grid-template-columns: auto 1fr; }
+    .result-panel .button { grid-column: 1 / -1; }
+    .button--danger { width: 100%; }
+    .event-log { grid-template-columns: 1fr; }
+}

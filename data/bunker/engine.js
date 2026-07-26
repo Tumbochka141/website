@@ -56,12 +56,12 @@ export function createInitialGame(players, capacity, random = Math.random) {
         votes[playerId] = "";
     }
 
-    return {
+    const engine = {
         gameType: GAME_TYPE,
         revision: 0,
         phase: PHASES.REVEAL,
         round: 1,
-        totalRounds: players.length - capacity,
+        totalRounds: players.length - capacity + 1,
         capacity,
         order,
         currentPlayerIndex: 0,
@@ -83,6 +83,9 @@ export function createInitialGame(players, capacity, random = Math.random) {
             }
         }
     };
+
+    ensureBunkerCardsForCurrentRound(engine);
+    return engine;
 }
 
 export function applyCommand(engine, command, hostId) {
@@ -115,6 +118,7 @@ export function applyCommand(engine, command, hostId) {
             return false;
     }
 
+    ensureBunkerCardsForCurrentRound(engine);
     engine.revision += 1;
     return true;
 }
@@ -274,6 +278,11 @@ function nextPhase(engine, command, hostId) {
     if (command.from !== hostId) throw new Error("Менять фазу может только ведущий.");
 
     if (engine.phase === PHASES.DISCUSSION) {
+        if (engine.round === 1) {
+            beginNextRound(engine);
+            return;
+        }
+
         engine.phase = PHASES.VOTING;
         engine.currentPlayerIndex = -1;
         engine.voteResult = emptyVoteResult();
@@ -378,6 +387,11 @@ function continueAfterResults(engine) {
         return;
     }
 
+    beginNextRound(engine, activeIds);
+}
+
+function beginNextRound(engine, activeIds = activePlayerIds(engine)) {
+    const completedRound = engine.round;
     engine.round += 1;
     engine.phase = PHASES.REVEAL;
     engine.voteResult = emptyVoteResult();
@@ -411,7 +425,57 @@ function continueAfterResults(engine) {
         engine.votes[id] = "";
     }
     engine.currentPlayerIndex = engine.order.findIndex((id) => engine.players[id]?.status === "active");
-    appendLog(engine, `Начинается раунд ${engine.round}.`);
+    appendLog(engine, completedRound === 1
+        ? `Первый раунд завершён без голосования. Начинается раунд ${engine.round}.`
+        : `Начинается раунд ${engine.round}.`);
+}
+
+function ensureBunkerCardsForCurrentRound(engine) {
+    engine.bunkerRoundsRevealed ??= {};
+    engine.extraScenarios ??= {};
+    engine.extraScenarios.bunker ??= [];
+
+    if (!engine.bunkerRoundsRevealed[1]) {
+        const wasHidden = engine.bunker?.status !== "revealed";
+        if (wasHidden) {
+            const firstCard = engine.scenarioSecrets?.bunker ?? drawUniqueBunkerCard(engine);
+            engine.bunker = {
+                status: "revealed",
+                title: firstCard.title,
+                description: firstCard.description,
+                revealedRound: 1
+            };
+            appendLog(engine, `Раунд 1: раскрыта карта бункера «${firstCard.title}».`);
+        } else {
+            engine.bunker.revealedRound ??= 1;
+        }
+        engine.bunkerRoundsRevealed[1] = true;
+    }
+
+    for (let round = 2; round <= Number(engine.round ?? 1); round += 1) {
+        if (engine.bunkerRoundsRevealed[round]) continue;
+        const card = drawUniqueBunkerCard(engine);
+        engine.extraScenarios.bunker.push({
+            id: `round_bunker_${round}`,
+            title: card.title,
+            description: card.description,
+            revealedRound: round
+        });
+        engine.bunkerRoundsRevealed[round] = true;
+        appendLog(engine, `Раунд ${round}: раскрыта карта бункера «${card.title}».`);
+    }
+}
+
+function drawUniqueBunkerCard(engine) {
+    const visibleTitles = new Set([
+        engine.bunker?.status === "revealed" ? engine.bunker.title : "",
+        ...(engine.extraScenarios?.bunker ?? []).map((card) => card.title)
+    ].filter(Boolean));
+    let card = drawScenarioCard("bunker");
+    for (let attempt = 0; attempt < 24 && visibleTitles.has(card.title); attempt += 1) {
+        card = drawScenarioCard("bunker");
+    }
+    return card;
 }
 
 function revealScenario(engine, command, hostId) {
@@ -830,7 +894,7 @@ function applyNeighborVoteMultiplier(engine, playerId, choice) {
 const SPECIAL_SNAPSHOT_KEYS = [
     "capacity", "totalRounds", "phase", "round", "currentPlayerIndex", "players",
     "characters", "votes", "voteResult", "roundEffects", "bunker", "threat",
-    "catastrophe", "extraScenarios", "firstReveal", "sharedSecrets",
+    "catastrophe", "extraScenarios", "bunkerRoundsRevealed", "firstReveal", "sharedSecrets",
     "pendingSpecialChoice", "pendingSpecialSnapshot", "pendingSecretShare",
     "pendingSecretSharePrivate"
 ];
