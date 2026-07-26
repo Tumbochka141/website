@@ -13,6 +13,7 @@ export const ui = {
     join: select("#online-join"),
     leave: select("#online-leave"),
     start: select("#online-start"),
+    restart: select("#online-restart"),
     players: select("#online-players"),
     opponents: select("#opponents"),
     status: select("#status-text"),

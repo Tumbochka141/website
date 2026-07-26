@@ -89,6 +89,7 @@ function bindControls() {
         setTimeout(() => { ui.code.textContent = multiplayer.roomId; }, 900);
     });
     ui.start.addEventListener("click", () => run(startGame));
+    ui.restart.addEventListener("click", () => run(restartGame));
     ui.draw.addEventListener("click", () => send("draw"));
     ui.uno.addEventListener("click", () => send("uno"));
 
@@ -130,7 +131,8 @@ function renderLobby() {
     }
 
     const isHost = room.meta.hostId === multiplayer.user.uid;
-    ui.start.hidden = !isHost;
+    ui.start.hidden = !isHost || room.meta.status !== "lobby";
+    ui.restart.hidden = !isHost || room.meta.status === "lobby";
     ui.start.disabled = Object.keys(room.players ?? {}).length < 2 || room.meta.status !== "lobby";
     if (room.meta.status === "lobby") {
         ui.status.textContent = isHost
@@ -185,6 +187,30 @@ async function startGame() {
         unoPendingPlayerId: null
     };
     await saveEngine(engine, `Ход: ${entries[0][1].name}.`);
+}
+
+async function restartGame() {
+    if (room?.meta?.hostId !== multiplayer.user.uid) {
+        throw new Error("Начать новую партию может только ведущий.");
+    }
+    if (Object.keys(room.players ?? {}).length < 2) {
+        throw new Error("Для партии нужны хотя бы два игрока.");
+    }
+
+    const confirmed = await window.gameDialog.confirm(
+        "Начать новую партию в этой комнате? Карты будут розданы заново."
+    );
+    if (!confirmed) return;
+
+    ui.restart.disabled = true;
+    try {
+        await multiplayer.resetGame();
+        publicState = null;
+        hand = [];
+        await startGame();
+    } finally {
+        ui.restart.disabled = false;
+    }
 }
 
 async function processCommand(command, key) {
