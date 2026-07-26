@@ -35,6 +35,7 @@ body {
 button, input { font: inherit; }
 button, label[for] { cursor: pointer; }
 button:focus-visible, input:focus-visible, a:focus-visible, label:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+[hidden] { display: none !important; }
 .view-input { position: fixed; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 
 .city-backdrop { position: fixed; z-index: 0; inset: 0; overflow: hidden; pointer-events: none; }
@@ -74,6 +75,7 @@ button:focus-visible, input:focus-visible, a:focus-visible, label:focus-visible 
 .site-nav a { padding: 29px 2px 25px; color: var(--red); border-bottom: 2px solid transparent; font: 700 .62rem/1 var(--display); letter-spacing: .12em; text-decoration: none; text-transform: uppercase; opacity: .48; }
 .site-nav a:hover, .site-nav a.is-active { border-color: var(--gold); opacity: 1; }
 .preview-switch { display: flex; padding: 4px; background: rgba(74,19,34,.05); border: 1px solid rgba(74,19,34,.14); border-radius: 9px; }
+.preview-switch[hidden] { display: none; }
 .preview-switch label { padding: 9px 13px; color: #806c6f; border-radius: 6px; font-size: .68rem; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; }
 #preview-lobby:checked ~ .site-header label[for="preview-lobby"],
 #preview-game:checked ~ .site-header label[for="preview-game"],
@@ -119,6 +121,7 @@ button:focus-visible, input:focus-visible, a:focus-visible, label:focus-visible 
 .button--primary b { font-size: 1.1rem; }
 .button--quiet { background: rgba(255,255,255,.055); border: 1px solid var(--line); }
 .button--quiet:hover { border-color: var(--gold); }
+.button:disabled { cursor: not-allowed; opacity: .42; transform: none; }
 .divider { display: flex; align-items: center; gap: 12px; margin: 23px 0; color: #6e6d70; font-size: .62rem; letter-spacing: .08em; text-transform: uppercase; }
 .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--line); }
 .join-row { display: grid; grid-template-columns: 1fr 112px; align-items: end; gap: 10px; }
@@ -132,6 +135,7 @@ button:focus-visible, input:focus-visible, a:focus-visible, label:focus-visible 
 #lobby-player-list { display: grid; gap: 7px; max-height: 170px; margin: 12px 0 0; padding: 0; overflow-y: auto; list-style: none; }
 #lobby-player-list li { display: flex; align-items: center; justify-content: space-between; min-height: 34px; padding: 7px 9px; color: var(--paper); background: rgba(255,255,255,.025); border-radius: 6px; font-size: .7rem; }
 #lobby-player-list li::after { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #5fa76e; box-shadow: 0 0 8px rgba(95,167,110,.5); }
+.role-lineup { margin: 12px 0 0; color: var(--muted); font-size: .62rem; line-height: 1.55; }
 .lobby-players__actions { display: grid; grid-template-columns: 1fr auto; gap: 9px; margin-top: 13px; padding-top: 13px; border-top: 1px solid var(--line); }
 .lobby-players__actions .button { margin: 0; }
 .lobby-players__actions .button--quiet { min-width: 92px; }
@@ -175,7 +179,7 @@ button:focus-visible, input:focus-visible, a:focus-visible, label:focus-visible 
 .role-card__symbol { position: relative; z-index: 1; display: grid; place-items: center; width: 74px; height: 74px; margin: 38px auto 18px; color: var(--paper); border: 1px solid rgba(238,231,219,.34); border-radius: 50%; font: 700 2.2rem/1 var(--serif); }
 .role-card > p, .role-card h2 { position: relative; z-index: 1; text-align: center; }
 .role-card > p { margin: 0; color: rgba(238,231,219,.67); font-size: .6rem; letter-spacing: .1em; text-transform: uppercase; }
-.role-card h2 { margin: 4px 0 16px; font: 700 2.55rem/1 var(--serif); }
+.role-card h2 { margin: 4px 0 16px; font: 700 2.05rem/1.05 var(--serif); overflow-wrap: anywhere; }
 .role-card__rule { position: relative; z-index: 1; width: 46px; height: 1px; margin: 0 auto 15px; background: rgba(238,231,219,.4); }
 .role-card .role-card__description { text-align: left; font: 500 .72rem/1.55 var(--body); letter-spacing: 0; text-transform: none; }
 .role-card__team { position: relative; z-index: 1; display: grid; gap: 7px; margin-top: 20px; padding-top: 14px; border-top: 1px solid rgba(238,231,219,.15); }
@@ -187,6 +191,10 @@ button:focus-visible, input:focus-visible, a:focus-visible, label:focus-visible 
 .mini-panel__heading { display: flex; justify-content: space-between; color: var(--gold); font-size: .58rem; font-weight: 800; letter-spacing: .11em; text-transform: uppercase; }
 .mini-panel__heading b { display: grid; place-items: center; width: 18px; height: 18px; border: 1px solid var(--line); border-radius: 50%; }
 .mini-panel p { margin: 12px 0 0; color: var(--muted); font-size: .68rem; line-height: 1.55; }
+.private-notes__list { display: grid; gap: 7px; margin-top: 12px; }
+.private-notes__list p { margin: 0; padding: 8px 9px; background: rgba(255,255,255,.035); border-left: 2px solid var(--line); border-radius: 4px; }
+.private-notes__list .is-danger { color: #ef9aa4; border-left-color: var(--red-bright); }
+.private-notes__list .is-safe { color: #9bc9a5; border-left-color: #5fa76e; }
 
 .table-panel { min-height: 620px; padding: 22px; background: linear-gradient(145deg, rgba(23,74,112,.18), transparent 42%), var(--panel); border: 1px solid var(--line); border-radius: 11px; }
 .table-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; padding-bottom: 19px; border-bottom: 1px solid var(--line); }
@@ -223,6 +231,8 @@ button:focus-visible, input:focus-visible, a:focus-visible, label:focus-visible 
 #preview-day:checked ~ .mafia-page .phase-action--day,
 #preview-vote:checked ~ .mafia-page .phase-action--vote { display: flex; }
 .action-panel > div { display: flex; align-items: center; gap: 12px; }
+.action-panel .action-panel__buttons { justify-content: flex-end; flex-wrap: wrap; }
+.action-panel__buttons .button { min-width: 0; }
 .action-panel__number { display: grid; place-items: center; width: 37px; height: 37px; color: var(--red-bright); border: 1px solid rgba(199,44,61,.35); border-radius: 50%; font: 700 .62rem/1 var(--display); }
 .action-panel p { display: grid; gap: 3px; margin: 0; }
 .action-panel small { color: var(--muted); font-size: .53rem; letter-spacing: .1em; text-transform: uppercase; }

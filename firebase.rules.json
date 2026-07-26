@@ -11,7 +11,7 @@
             ".validate": "newData.isNumber() && newData.val() >= 2 && newData.val() <= 16"
           },
           "gameType": {
-            ".validate": "newData.isString() && (newData.val() === 'uno' || newData.val() === 'bunker')"
+            ".validate": "newData.isString() && (newData.val() === 'uno' || newData.val() === 'bunker' || newData.val() === 'mafia')"
           }
         },
         "players": {

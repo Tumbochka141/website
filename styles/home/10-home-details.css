@@ -50,7 +50,7 @@
 .gallery-item--link::after { content: "CATALOG"; }
 .gallery-item[href="uno.html"]::after { content: "01 / READY"; }
 .gallery-item[href="bunker.html"]::after { content: "02 / READY"; }
-.gallery-item[href*="mafia"]::after { content: "03 / SOON"; }
+.gallery-item[href*="mafia"]::after { content: "03 / READY"; }
 
 @media (max-width: 720px) {
     .main__content {
