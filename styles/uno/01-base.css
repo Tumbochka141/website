@@ -231,7 +231,43 @@
         .direction-indicator.is-changing { animation: direction-change .55s ease; }
         @keyframes direction-change { 50% { transform: scale(1.55) rotate(180deg); } }
 
-        .status-text { min-width: 0; }
+        .turn-status {
+            min-width: 0;
+            flex: 1 1 auto;
+            display: grid;
+            gap: 5px;
+        }
+        .status-text {
+            min-width: 0;
+            line-height: 1.2;
+        }
+        .turn-timer {
+            width: 100%;
+            height: 4px;
+            overflow: hidden;
+            border-radius: 999px;
+            background: rgba(214, 183, 81, .18);
+        }
+        .turn-timer__bar {
+            display: block;
+            width: 100%;
+            height: 100%;
+            border-radius: inherit;
+            background: var(--turn-timer-fill, var(--gold-bright));
+            transform: scaleX(1);
+            transform-origin: left center;
+        }
+        .turn-timer__bar.is-running {
+            animation: uno-turn-timer 45s linear forwards;
+        }
+        @keyframes uno-turn-timer {
+            0%, 66% { background: var(--turn-timer-fill, var(--gold-bright)); }
+            88% { background: #e78a4e; }
+            100% {
+                background: #d75353;
+                transform: scaleX(0);
+            }
+        }
         .current-color {
             width: 15px;
             height: 15px;

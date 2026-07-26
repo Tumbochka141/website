@@ -75,7 +75,12 @@
             <div class="opponents" id="opponents" aria-label="Соперники"></div>
             <p class="turn-indicator" id="status" aria-live="polite">
                 <span class="direction-indicator" id="direction-indicator" aria-label="Направление по часовой стрелке">↻</span>
-                <span class="status-text" id="status-text">Начать партию</span>
+                <span class="turn-status">
+                    <span class="status-text" id="status-text">Начать партию</span>
+                    <span class="turn-timer" id="turn-timer" hidden aria-hidden="true">
+                        <span class="turn-timer__bar" id="turn-timer-bar"></span>
+                    </span>
+                </span>
                 <span class="current-color" id="current-color" aria-label="Текущий цвет не выбран"></span>
             </p>
 

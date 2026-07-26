@@ -17,6 +17,8 @@ export const ui = {
     players: select("#online-players"),
     opponents: select("#opponents"),
     status: select("#status-text"),
+    turnTimer: select("#turn-timer"),
+    turnTimerBar: select("#turn-timer-bar"),
     hand: select("#player-hand"),
     top: select("#discard-pile"),
     draw: select("#draw-pile"),

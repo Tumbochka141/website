@@ -108,9 +108,21 @@ export class Multiplayer {
     subscribeRoom(callback) {
         this.requireRoom();
         const room = { meta: null, players: null };
-        const emit = () => callback({ meta: room.meta, players: room.players });
-        this.track(onValue(ref(this.db, `rooms/${this.roomId}/meta`), (snapshot) => { room.meta = snapshot.val(); emit(); }));
-        this.track(onValue(ref(this.db, `rooms/${this.roomId}/players`), (snapshot) => { room.players = snapshot.val() ?? {}; emit(); }));
+        let metaReady = false;
+        let playersReady = false;
+        const emit = () => {
+            if (metaReady && playersReady) callback({ meta: room.meta, players: room.players });
+        };
+        this.track(onValue(ref(this.db, `rooms/${this.roomId}/meta`), (snapshot) => {
+            room.meta = snapshot.val();
+            metaReady = true;
+            emit();
+        }));
+        this.track(onValue(ref(this.db, `rooms/${this.roomId}/players`), (snapshot) => {
+            room.players = snapshot.val() ?? {};
+            playersReady = true;
+            emit();
+        }));
     }
 
     subscribePublicState(callback) {
@@ -192,24 +204,65 @@ export class Multiplayer {
 
     async resetGame() {
         this.requireRoom();
-        const meta = (await get(ref(this.db, `rooms/${this.roomId}/meta`))).val();
-        if (meta?.hostId !== this.user.uid) throw new Error("Сбросить партию может только ведущий.");
         const roomPath = `rooms/${this.roomId}`;
-        await Promise.all([
-            remove(ref(this.db, `${roomPath}/engine`)),
-            remove(ref(this.db, `${roomPath}/public`)),
-            remove(ref(this.db, `${roomPath}/hands`)),
-            remove(ref(this.db, `${roomPath}/commands`))
+        const [metaSnapshot, playersSnapshot, commandsSnapshot, engineSnapshot] = await Promise.all([
+            get(ref(this.db, `${roomPath}/meta`)),
+            get(ref(this.db, `${roomPath}/players`)),
+            get(ref(this.db, `${roomPath}/commands`)),
+            get(ref(this.db, `${roomPath}/engine`))
         ]);
-        await update(ref(this.db, `${roomPath}/meta`), { status: "lobby" });
+        const meta = metaSnapshot.val();
+        if (meta?.hostId !== this.user.uid) throw new Error("Сбросить партию может только ведущий.");
+
+        const patch = {
+            [`${roomPath}/engine`]: null,
+            [`${roomPath}/public`]: null,
+            [`${roomPath}/meta/status`]: "lobby"
+        };
+        const playerIds = new Set([
+            ...Object.keys(playersSnapshot.val() ?? {}),
+            ...Object.keys(engineSnapshot.val()?.hands ?? {})
+        ]);
+        for (const playerId of playerIds) {
+            patch[`${roomPath}/hands/${playerId}`] = null;
+        }
+        for (const commandId of Object.keys(commandsSnapshot.val() ?? {})) {
+            patch[`${roomPath}/commands/${commandId}`] = null;
+        }
+        await update(ref(this.db), patch);
     }
 
     async deleteRoom() {
         this.requireRoom();
-        const meta = (await get(ref(this.db, `rooms/${this.roomId}/meta`))).val();
+        const roomPath = `rooms/${this.roomId}`;
+        const [metaSnapshot, playersSnapshot, commandsSnapshot, engineSnapshot] = await Promise.all([
+            get(ref(this.db, `${roomPath}/meta`)),
+            get(ref(this.db, `${roomPath}/players`)),
+            get(ref(this.db, `${roomPath}/commands`)),
+            get(ref(this.db, `${roomPath}/engine`))
+        ]);
+        const meta = metaSnapshot.val();
         if (meta?.hostId !== this.user.uid) throw new Error("Закрыть комнату может только ведущий.");
+
+        const playerIds = new Set([
+            ...Object.keys(playersSnapshot.val() ?? {}),
+            ...Object.keys(engineSnapshot.val()?.hands ?? {})
+        ]);
+        const patch = {
+            [`${roomPath}/engine`]: null,
+            [`${roomPath}/public`]: null,
+            [`${roomPath}/meta`]: null
+        };
+        for (const playerId of playerIds) {
+            patch[`${roomPath}/players/${playerId}`] = null;
+            patch[`${roomPath}/hands/${playerId}`] = null;
+        }
+        for (const commandId of Object.keys(commandsSnapshot.val() ?? {})) {
+            patch[`${roomPath}/commands/${commandId}`] = null;
+        }
+
         await onDisconnect(this.playerRef).cancel();
-        await remove(ref(this.db, `rooms/${this.roomId}`));
+        await update(ref(this.db), patch);
         this.clearListeners();
         this.roomId = null;
         this.playerRef = null;

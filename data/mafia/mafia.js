@@ -284,6 +284,10 @@ function connectToRoom(code) {
     ui.gameRoomCode.textContent = code;
 
     multiplayer.subscribeRoom((roomState) => {
+        if (!roomState?.meta) {
+            handleRoomUnavailable();
+            return;
+        }
         room = {
             meta: roomState?.meta ?? null,
             players: roomState?.players ?? {}
@@ -699,7 +703,7 @@ async function sendCommand(type, data = {}) {
 
 async function resetGame() {
     if (!isHost()) throw new Error("Начать новую партию может только ведущий.");
-    if (!window.confirm("Вернуть всех в лобби и начать новую партию с тем же кодом?")) return;
+    if (!window.confirm("Завершить текущую партию и вернуться в лобби? Код комнаты и игроки сохранятся.")) return;
     await multiplayer.resetGame();
     publicState = null;
     privateState = {};
@@ -710,8 +714,29 @@ async function resetGame() {
 }
 
 async function leaveRoom() {
+    if (!multiplayer?.roomId) return;
+    const host = isHost();
+    const message = host
+        ? "Закрыть комнату для всех участников?"
+        : "Выйти из комнаты?";
+    if (!window.confirm(message)) return;
+
+    if (host) await multiplayer.deleteRoom();
+    else await multiplayer.leave();
     localStorage.removeItem(ROOM_STORAGE_KEY);
-    if (multiplayer?.roomId) await multiplayer.leave();
+    location.reload();
+}
+
+async function handleRoomUnavailable() {
+    localStorage.removeItem(ROOM_STORAGE_KEY);
+    room = null;
+    publicState = null;
+    privateState = {};
+    try {
+        await multiplayer.leave();
+    } catch (error) {
+        console.warn("Не удалось полностью выйти из закрытой комнаты:", error);
+    }
     location.reload();
 }
 

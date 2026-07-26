@@ -432,6 +432,14 @@ body.is-day .uno-theme-toggle__sleep { opacity: .82; animation: uno-owl-sleep 2.
     border-color: var(--gold-bright);
 }
 
+.game-board.is-my-turn .turn-timer {
+    background: rgba(86, 18, 41, .18);
+}
+
+.game-board.is-my-turn .turn-status {
+    --turn-timer-fill: var(--wine);
+}
+
 .direction-indicator { text-shadow: none; }
 .current-color { box-shadow: none; }
 

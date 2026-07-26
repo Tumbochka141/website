@@ -12,6 +12,7 @@ let publicState = null;
 let hand = [];
 let commandQueue = Promise.resolve();
 let gameConnected = false;
+let turnTimerKey = "";
 
 bindControls();
 boot();
@@ -78,11 +79,7 @@ function bindControls() {
         const code = await multiplayer.joinRoom(ui.codeInput.value, identity.name, identity.avatarUrl);
         return enterRoom(code);
     }));
-    ui.leave.addEventListener("click", async () => {
-        localStorage.removeItem(ROOM_STORAGE_KEY);
-        await multiplayer.leave();
-        location.reload();
-    });
+    ui.leave.addEventListener("click", () => run(leaveRoom));
     ui.code.addEventListener("click", async () => {
         await navigator.clipboard.writeText(multiplayer.roomId);
         ui.code.textContent = "СКОПИРОВАНО";
@@ -112,6 +109,10 @@ async function enterRoom(code) {
     ui.code.textContent = code;
 
     multiplayer.subscribeRoom((value) => {
+        if (!value?.meta) {
+            handleRoomUnavailable();
+            return;
+        }
         room = value;
         renderLobby();
         if (value.meta?.status !== "lobby" && !gameConnected) connectGame();
@@ -135,6 +136,7 @@ function renderLobby() {
     ui.restart.hidden = !isHost || room.meta.status === "lobby";
     ui.start.disabled = Object.keys(room.players ?? {}).length < 2 || room.meta.status !== "lobby";
     if (room.meta.status === "lobby") {
+        resetGameView();
         ui.status.textContent = isHost
             ? "Когда все войдут, нажми «Начать игру»."
             : "Ждём, когда ведущий начнёт игру.";
@@ -198,7 +200,7 @@ async function restartGame() {
     }
 
     const confirmed = await window.gameDialog.confirm(
-        "Начать новую партию в этой комнате? Карты будут розданы заново."
+        "Завершить текущую партию и вернуться в лобби? Код комнаты и игроки сохранятся."
     );
     if (!confirmed) return;
 
@@ -207,10 +209,38 @@ async function restartGame() {
         await multiplayer.resetGame();
         publicState = null;
         hand = [];
-        await startGame();
+        resetGameView();
     } finally {
         ui.restart.disabled = false;
     }
+}
+
+async function leaveRoom() {
+    if (!multiplayer?.roomId) return;
+    const host = room?.meta?.hostId === multiplayer.user.uid;
+    const confirmed = await window.gameDialog.confirm(host
+        ? "Закрыть комнату для всех участников?"
+        : "Выйти из комнаты?");
+    if (!confirmed) return;
+
+    if (host) await multiplayer.deleteRoom();
+    else await multiplayer.leave();
+    localStorage.removeItem(ROOM_STORAGE_KEY);
+    location.reload();
+}
+
+async function handleRoomUnavailable() {
+    localStorage.removeItem(ROOM_STORAGE_KEY);
+    room = null;
+    publicState = null;
+    hand = [];
+    resetGameView();
+    try {
+        await multiplayer.leave();
+    } catch (error) {
+        console.warn("Не удалось полностью выйти из закрытой комнаты:", error);
+    }
+    location.reload();
 }
 
 async function processCommand(command, key) {
@@ -283,7 +313,10 @@ async function saveEngine(engine, message) {
 }
 
 function renderGame() {
-    if (!publicState) return;
+    if (!publicState) {
+        resetGameView();
+        return;
+    }
     const myTurn = publicState.currentPlayerId === multiplayer.user.uid && !publicState.winner;
     renderTableIndicators(publicState.currentColor, publicState.direction);
     renderOpponents();
@@ -293,7 +326,7 @@ function renderGame() {
         ? `${publicState.players[publicState.winner].name} победил!`
         : publicState.unoPendingPlayerId === multiplayer.user.uid
             ? "Крикни UNO!"
-            : myTurn ? "Твой ход" : `Ход: ${activeName}`;
+            : myTurn ? "Сейчас твой ход" : `Сейчас ходит ${activeName}`;
 
     ui.top.replaceChildren(createCardElement(publicState.topCard));
     ui.deckCount.textContent = publicState.deckCount ?? "?";
@@ -302,6 +335,42 @@ function renderGame() {
     ui.uno.disabled = publicState.unoPendingPlayerId !== multiplayer.user.uid;
     ui.hand.style.pointerEvents = myTurn ? "auto" : "none";
     ui.game.classList.toggle("is-my-turn", myTurn);
+    syncTurnTimer();
+}
+
+function syncTurnTimer() {
+    if (publicState?.winner || !publicState?.currentPlayerId) {
+        stopTurnTimer();
+        return;
+    }
+
+    const nextKey = `${publicState.currentPlayerId}:${publicState.revision ?? 0}`;
+    if (nextKey === turnTimerKey) return;
+    turnTimerKey = nextKey;
+    ui.turnTimer.hidden = false;
+    ui.turnTimerBar.classList.remove("is-running");
+    void ui.turnTimerBar.offsetWidth;
+    ui.turnTimerBar.classList.add("is-running");
+}
+
+function stopTurnTimer() {
+    turnTimerKey = "";
+    ui.turnTimer.hidden = true;
+    ui.turnTimerBar.classList.remove("is-running");
+}
+
+function resetGameView() {
+    stopTurnTimer();
+    ui.opponents.replaceChildren();
+    ui.hand.replaceChildren();
+    ui.top.replaceChildren();
+    ui.deckCount.textContent = "0";
+    ui.draw.disabled = true;
+    ui.uno.disabled = true;
+    ui.hand.style.pointerEvents = "none";
+    ui.direction.hidden = true;
+    ui.currentColor.hidden = true;
+    ui.game.classList.remove("is-my-turn", "has-active-color", "color-red", "color-yellow", "color-green", "color-blue");
 }
 
 function renderOpponents() {
