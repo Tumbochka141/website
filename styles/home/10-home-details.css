@@ -51,6 +51,92 @@
 .gallery-item[href="uno.html"]::after { content: "01 / READY"; }
 .gallery-item[href="bunker.html"]::after { content: "02 / READY"; }
 .gallery-item[href*="mafia"]::after { content: "03 / READY"; }
+.gallery-item--soon::after { content: "TBA"; }
+
+.gallery-item--soon {
+    cursor: default;
+    background: #0b2942;
+    border-color: rgba(214, 183, 81, .2);
+}
+
+.gallery-item--soon:hover {
+    transform: scale(var(--scale));
+    border-color: rgba(214, 183, 81, .3);
+    box-shadow: 0 7px 0 rgba(7, 28, 46, .18);
+}
+
+.gallery-placeholder {
+    position: relative;
+    min-height: calc(100% - 75px);
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    color: rgba(255, 232, 120, .72);
+    background:
+        linear-gradient(135deg, rgba(214, 183, 81, .055) 25%, transparent 25%) 0 0 / 22px 22px,
+        linear-gradient(315deg, rgba(214, 183, 81, .035) 25%, transparent 25%) 0 0 / 22px 22px,
+        #0b2942;
+    border-bottom: 1px solid rgba(214, 183, 81, .14);
+}
+
+.gallery-placeholder::before {
+    content: "";
+    position: absolute;
+    width: 42%;
+    aspect-ratio: 1;
+    border: 1px solid rgba(214, 183, 81, .18);
+    border-radius: 50%;
+    box-shadow:
+        0 0 0 22px rgba(214, 183, 81, .025),
+        0 0 0 44px rgba(214, 183, 81, .018);
+}
+
+.gallery-placeholder span {
+    position: relative;
+    z-index: 1;
+    font: 800 clamp(3rem, 8vw, 6.5rem)/1 var(--font-display);
+    text-shadow: 0 8px 0 rgba(7, 28, 46, .35);
+}
+
+.gallery-item--soon .gallery-caption {
+    min-height: 75px;
+    display: grid;
+    place-content: center;
+    padding: 10px 14px;
+}
+
+.gallery-item--soon .gallery-caption h4 {
+    color: #ffe878;
+    font-size: .76rem;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+.gallery-item--soon .gallery-caption p {
+    font-size: .66rem;
+}
+
+body:not(.is-night) .gallery-item--soon {
+    background: #e7d8c2;
+    border-color: rgba(74, 19, 34, .18);
+}
+
+body:not(.is-night) .gallery-placeholder {
+    color: rgba(74, 19, 34, .56);
+    background:
+        linear-gradient(135deg, rgba(74, 19, 34, .045) 25%, transparent 25%) 0 0 / 22px 22px,
+        linear-gradient(315deg, rgba(74, 19, 34, .025) 25%, transparent 25%) 0 0 / 22px 22px,
+        #e7d8c2;
+    border-bottom-color: rgba(74, 19, 34, .12);
+}
+
+body:not(.is-night) .gallery-placeholder::before {
+    border-color: rgba(74, 19, 34, .14);
+}
+
+body:not(.is-night) .gallery-item--soon .gallery-caption h4 {
+    color: #4a1322;
+}
 
 @media (max-width: 720px) {
     .main__content {
@@ -88,6 +174,21 @@
         font-size: .39rem;
     }
     .gallery-item--link::after { top: 50%; transform: translateY(-50%); }
+
+    .gallery-item--link { order: 1; }
+    .gallery-item--soon {
+        order: 2;
+        grid-template-rows: minmax(105px, 1fr) auto;
+    }
+    .gallery-placeholder {
+        width: 100%;
+        min-height: 105px;
+    }
+    .gallery-item--soon .gallery-caption {
+        min-height: 58px;
+        align-items: center;
+        text-align: center;
+    }
 
     .sidebar-about,
     .sidebar-discord-section { position: relative; padding-top: 30px; }

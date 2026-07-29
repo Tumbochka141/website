@@ -630,9 +630,11 @@ function playSpecial(engine, command) {
     const character = engine.characters?.[playerId];
     const specialId = Number(character?.specialId ?? 0);
     if (!player || !character) throw new Error("Персонаж не найден.");
-    if (!player.revealedTraits?.special) throw new Error("Сначала раскройте особую карту.");
     if (player.specialUsed) throw new Error("Особая карта уже использована.");
-    validateSpecialTiming(engine, specialId, player);
+    if (!specialId) throw new Error("Особая карта не назначена.");
+    if (!player.revealedTraits?.special) {
+        player.revealedTraits.special = character.special;
+    }
 
     const targetId = command.data?.targetId;
     const target = engine.players?.[targetId];
@@ -833,22 +835,6 @@ function playSpecial(engine, command) {
 function replaceTrait(engine, playerId, trait, value, reveal = false) {
     engine.characters[playerId][trait] = value;
     if (reveal || engine.players[playerId].revealedTraits?.[trait]) engine.players[playerId].revealedTraits[trait] = value;
-}
-
-function validateSpecialTiming(engine, specialId, player) {
-    if ([1, 11, 24, 30, 38].includes(specialId) && player.status !== "exiled") {
-        throw new Error("Эту карту можно сыграть только после изгнания.");
-    }
-    if ([46, 47, 48, 49, 51, 52, 57, 58, 65, 68, 69, 70].includes(specialId)
-        && engine.phase !== PHASES.DISCUSSION) {
-        throw new Error("Эту карту нужно сыграть перед голосованием, во время обсуждения.");
-    }
-    if ([59, 60, 61, 62, 63].includes(specialId)) {
-        const roundHasStarted = Object.values(engine.players).some((item) => item.hasFinishedTurn || item.revealedThisTurn);
-        if (engine.phase !== PHASES.REVEAL || engine.round < 2 || engine.round > 4 || roundHasStarted) {
-            throw new Error("Эту карту можно сыграть только в самом начале 2, 3 или 4 раунда.");
-        }
-    }
 }
 
 function revealSpecificTrait(engine, playerId, trait) {

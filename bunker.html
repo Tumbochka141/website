@@ -145,24 +145,30 @@
             </section>
 
             <section class="scenario-grid" id="scenario-grid" aria-label="Условия партии">
-                <article class="scenario-card scenario-card--danger" id="catastrophe-card" data-card-type="catastrophe">
-                    <span class="scenario-card__label">Катастрофа</span>
-                    <h2 data-card-title>Данные засекречены</h2>
-                    <p data-card-description>Сценарий появится после начала партии.</p>
-                    <button class="link-button host-only" id="reveal-catastrophe" type="button">Раскрыть</button>
-                </article>
-                <article class="scenario-card" id="bunker-card" data-card-type="bunker">
-                    <span class="scenario-card__label">Бункер</span>
-                    <h2 data-card-title>Объект не исследован</h2>
-                    <p data-card-description>Свойство убежища пока неизвестно.</p>
-                    <button class="link-button host-only" id="reveal-bunker" type="button">Раскрыть</button>
-                </article>
-                <article class="scenario-card" id="threat-card" data-card-type="threat">
-                    <span class="scenario-card__label">Угроза</span>
-                    <h2 data-card-title>Сигнал отсутствует</h2>
-                    <p data-card-description>Периметр остаётся под наблюдением.</p>
-                    <button class="link-button host-only" id="reveal-threat" type="button">Раскрыть</button>
-                </article>
+                <div class="scenario-stack" data-scenario-stack="catastrophe">
+                    <article class="scenario-card scenario-card--danger" id="catastrophe-card" data-card-type="catastrophe">
+                        <span class="scenario-card__label">Катастрофа</span>
+                        <h2 data-card-title>Данные засекречены</h2>
+                        <p data-card-description>Сценарий появится после начала партии.</p>
+                        <button class="link-button host-only" id="reveal-catastrophe" type="button">Раскрыть</button>
+                    </article>
+                </div>
+                <div class="scenario-stack" data-scenario-stack="bunker">
+                    <article class="scenario-card" id="bunker-card" data-card-type="bunker">
+                        <span class="scenario-card__label">Бункер</span>
+                        <h2 data-card-title>Объект не исследован</h2>
+                        <p data-card-description>Свойство убежища пока неизвестно.</p>
+                        <button class="link-button host-only" id="reveal-bunker" type="button">Раскрыть</button>
+                    </article>
+                </div>
+                <div class="scenario-stack" data-scenario-stack="threat">
+                    <article class="scenario-card" id="threat-card" data-card-type="threat">
+                        <span class="scenario-card__label">Угроза</span>
+                        <h2 data-card-title>Сигнал отсутствует</h2>
+                        <p data-card-description>Периметр остаётся под наблюдением.</p>
+                        <button class="link-button host-only" id="reveal-threat" type="button">Раскрыть</button>
+                    </article>
+                </div>
             </section>
 
             <section class="panel vote-panel shared-vote-panel" id="vote-panel" aria-labelledby="vote-title" hidden>

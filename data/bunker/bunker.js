@@ -252,8 +252,9 @@ function bindEvents() {
         }));
     });
 
-    ui.hostPlays.addEventListener("change", renderRoom);
-    ui.playerCount.addEventListener("change", renderRoom);
+    ui.hostPlays.addEventListener("change", () => run(syncRoomSettings));
+    ui.playerCount.addEventListener("change", () => run(syncRoomSettings));
+    ui.bunkerCapacity.addEventListener("change", () => run(syncRoomSettings));
 
     ui.playersList.addEventListener("click", (event) => {
         const button = event.target.closest("[data-kick-player]");
@@ -309,7 +310,7 @@ function renderSpecialPreview() {
     const usage = specialUsage(card.id);
     ui.hostSpecialPreview.querySelector("strong").textContent = `№${card.id} · ${specialCardTitle(card.text)}`;
     ui.hostSpecialPreview.querySelector("span").textContent = card.text;
-    ui.hostSpecialPreview.querySelector("small").textContent = `Когда: ${usage.timing}. ${usage.inputs.length ? `Нужно выбрать: ${usage.inputs.join(", ")}.` : "Дополнительный выбор не нужен."}`;
+    ui.hostSpecialPreview.querySelector("small").textContent = `Доступна в любой момент. Условие эффекта: ${usage.timing}. ${usage.inputs.length ? `Нужно выбрать: ${usage.inputs.join(", ")}.` : "Дополнительный выбор не нужен."}`;
 }
 
 async function restoreRoom() {
@@ -341,6 +342,7 @@ function readPlayerName() {
 
 async function createRoom(playerName, maxPlayers) {
     const roomCode = await multiplayer.createRoom(playerName, maxPlayers, null, GAME_TYPE);
+    await multiplayer.setRoomSettings(readRoomSettingsFromControls());
     localStorage.setItem(ROOM_STORAGE_KEY, roomCode);
     connectToRoom();
     return roomCode;
@@ -395,15 +397,20 @@ function renderRoom() {
     const entries = Object.entries(room.players ?? {});
     const host = isHost();
     const playing = room.meta.status !== "lobby";
+    const settings = getRoomSettings();
+
+    ui.playerCount.value = String(settings.playerCount);
+    ui.bunkerCapacity.value = String(settings.bunkerCapacity);
+    ui.hostPlays.checked = settings.hostPlays;
 
     ui.modeHost.disabled = !host;
     ui.hostModeTab.hidden = !host;
     ui.startGame.hidden = !host || playing;
     ui.restartRoom.hidden = !host || !playing;
     ui.setupPanel.hidden = playing;
-    ui.hostPlays.disabled = playing;
-    ui.playerCount.disabled = playing;
-    ui.bunkerCapacity.disabled = playing;
+    ui.hostPlays.disabled = !host || playing;
+    ui.playerCount.disabled = !host || playing;
+    ui.bunkerCapacity.disabled = !host || playing;
     if (host && playing && publicState?.players) {
         ui.hostPlays.checked = Boolean(publicState.players[room.meta.hostId]);
     }
@@ -420,8 +427,8 @@ function renderRoom() {
     else renderWaitingPlayers(entries);
 
     const participants = entries.filter(([id, player]) =>
-        player.online !== false && (ui.hostPlays.checked || id !== room.meta.hostId));
-    const expected = Number(ui.playerCount.value);
+        player.online !== false && (settings.hostPlays || id !== room.meta.hostId));
+    const expected = settings.playerCount;
     ui.startGame.disabled = !host || playing || participants.length !== expected;
     if (publicState?.players) {
         ui.playersAlive.textContent = Object.values(publicState.players)
@@ -435,8 +442,37 @@ function renderRoom() {
     if (!playing) {
         setStatus(host
             ? `Лобби: ${participants.length}/${expected} игроков`
-            : `В комнате ${entries.length} участников. Ждём ведущего.`);
+            : `Лобби: ${participants.length}/${expected} игроков. Ждём ведущего.`);
     }
+}
+
+function getRoomSettings() {
+    const settings = room?.meta?.settings ?? {};
+    return {
+        playerCount: normalizeRoomNumber(settings.playerCount, 8, 6, 15),
+        bunkerCapacity: normalizeRoomNumber(settings.bunkerCapacity, 4, 3, 7),
+        hostPlays: settings.hostPlays === true
+    };
+}
+
+function readRoomSettingsFromControls() {
+    return {
+        playerCount: normalizeRoomNumber(ui.playerCount.value, 8, 6, 15),
+        bunkerCapacity: normalizeRoomNumber(ui.bunkerCapacity.value, 4, 3, 7),
+        hostPlays: ui.hostPlays.checked
+    };
+}
+
+function normalizeRoomNumber(value, fallback, minimum, maximum) {
+    const number = Number(value);
+    return Number.isInteger(number) && number >= minimum && number <= maximum
+        ? number
+        : fallback;
+}
+
+async function syncRoomSettings() {
+    if (!isHost() || room?.meta?.status !== "lobby") return;
+    await multiplayer.setRoomSettings(readRoomSettingsFromControls());
 }
 
 function renderWaitingPlayers(entries) {
@@ -615,7 +651,6 @@ function renderPrivateState() {
     ui.hostFinishTurn.disabled = !canFinish;
     ui.hostDossier.hidden = !isHost() || !myPublicState;
 
-    const specialRevealed = Boolean(myPublicState?.revealedTraits?.special);
     const pendingShare = publicState?.pendingSecretShare?.targetId === myId
         ? publicState.pendingSecretShare
         : null;
@@ -624,20 +659,21 @@ function renderPrivateState() {
         : null;
     renderSpecialChoiceOptions(pendingSpecial);
     const specialId = Number(privateState?.specialId ?? 0);
+    const hasSpecial = specialId > 0 && Boolean(privateState?.special);
     const specialUi = specialUsage(specialId);
     ui.specialGuide.textContent = pendingShare
         ? "Выберите свою закрытую карту для обмена тайной информацией."
         : pendingSpecial
             ? "Выберите одну из двух предложенных карт бункера."
-            : specialId
-                ? `Карта №${specialId}. Использование: ${specialUi.timing}.${specialUi.inputs.length ? ` Выберите: ${specialUi.inputs.join(", ")}.` : " Дополнительный выбор не нужен."}`
+            : hasSpecial
+                ? `Карта №${specialId} доступна в любой момент.${specialUi.inputs.length ? ` Выберите: ${specialUi.inputs.join(", ")}.` : " Дополнительный выбор не нужен."}`
                 : "У этой карты нет автоматического эффекта: ведущий завершит её вручную.";
     ui.specialTargetPlayer.hidden = !specialUi.targetPlayer.includes(specialId) || Boolean(pendingShare);
     ui.specialTargetTrait.hidden = !(specialUi.targetTrait.includes(specialId) || pendingShare);
     ui.specialTargetScenario.hidden = !specialUi.targetScenario.includes(specialId);
     ui.specialChoice.hidden = !(specialUi.choice.includes(specialId) || pendingSpecial);
-    ui.specialControls.hidden = !specialRevealed && !pendingShare;
-    ui.playSpecial.disabled = (!specialRevealed || Boolean(myPublicState?.specialUsed)) && !pendingShare;
+    ui.specialControls.hidden = !hasSpecial && !pendingShare;
+    ui.playSpecial.disabled = (!hasSpecial || Boolean(myPublicState?.specialUsed)) && !pendingShare;
     ui.playSpecial.textContent = pendingShare
         ? "Поделиться выбранной закрытой картой"
         : myPublicState?.specialUsed
@@ -782,7 +818,9 @@ function renderScenarios() {
                 remove.textContent = "Убрать карту";
                 card.append(remove);
             }
-            ui.scenarioGrid.append(card);
+            const stackType = scenarioType === "exile" ? "bunker" : scenarioType;
+            const stack = ui.scenarioGrid.querySelector(`[data-scenario-stack="${stackType}"]`);
+            (stack ?? ui.scenarioGrid).append(card);
         }
     }
 }
@@ -928,17 +966,18 @@ async function startGame() {
     if (!room?.meta?.hostId) throw new Error("Сначала создайте комнату.");
     if (!isHost()) throw new Error("Начать игру может только ведущий.");
 
+    const settings = getRoomSettings();
     const roomPlayers = Object.entries(room.players ?? {}).filter(([, player]) => player.online !== false);
-    const players = ui.hostPlays.checked
+    const players = settings.hostPlays
         ? roomPlayers
         : roomPlayers.filter(([playerId]) => playerId !== room.meta.hostId);
-    const expectedPlayers = Number(ui.playerCount.value);
+    const expectedPlayers = settings.playerCount;
 
     if (players.length !== expectedPlayers) {
         throw new Error(`Нужно ${expectedPlayers} игроков, сейчас подключено ${players.length}.`);
     }
 
-    const capacity = Number(ui.bunkerCapacity.value);
+    const capacity = settings.bunkerCapacity;
     if (capacity >= players.length) throw new Error("Мест в бункере должно быть меньше, чем игроков.");
 
     const engine = createInitialGame(players, capacity);

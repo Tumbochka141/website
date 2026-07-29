@@ -159,6 +159,16 @@ export class Multiplayer {
         });
     }
 
+    async setRoomSettings(settings) {
+        this.requireRoom();
+        const metaRef = ref(this.db, `rooms/${this.roomId}/meta`);
+        const meta = (await get(metaRef)).val();
+        if (meta?.hostId !== this.user.uid) {
+            throw new Error("Изменять настройки комнаты может только ведущий.");
+        }
+        await set(ref(this.db, `rooms/${this.roomId}/meta/settings`), settings);
+    }
+
     async removeCommand(commandId) {
         await remove(ref(this.db, `rooms/${this.roomId}/commands/${commandId}`));
     }

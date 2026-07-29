@@ -122,6 +122,27 @@ test("секретный выбор особой карты виден толь�
     assert.equal(privateStates.p2.pendingSpecialChoice, undefined);
 });
 
+test("особую карту можно разыграть в любой момент без предварительного раскрытия", () => {
+    const engine = makeGame(4, 2);
+    const special = SPECIAL_CARDS.find((card) => card.id === 46);
+    engine.characters.p2.specialId = special.id;
+    engine.characters.p2.special = special.text;
+
+    assert.equal(engine.phase, PHASES.REVEAL);
+    assert.equal(engine.order[engine.currentPlayerIndex], "p1");
+    assert.equal(Boolean(engine.players.p2.revealedTraits.special), false);
+
+    send(engine, "PLAY_SPECIAL", "p2");
+
+    assert.equal(engine.players.p2.revealedTraits.special, special.text);
+    assert.equal(engine.players.p2.ignoreVotesIfHalf, true);
+    assert.equal(engine.players.p2.specialUsed, true);
+    assert.throws(
+        () => send(engine, "PLAY_SPECIAL", "p2"),
+        /уже использована/
+    );
+});
+
 test("обычная партия доходит до финального состава бункера", () => {
     const engine = makeGame(4, 2);
 
