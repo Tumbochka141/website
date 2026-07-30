@@ -9,7 +9,7 @@
     .round-bar .button { grid-column: 1 / -1; }
     .player-layout, .host-layout, .host-editor__body { grid-template-columns: 1fr; }
     .special-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .special-controls .button { grid-column: 1 / -1; }
+    .special-controls > .button { grid-column: 1 / -1; }
     .player-aside { grid-template-columns: 1fr 1fr; }
     .host-traits { grid-template-columns: repeat(2, 1fr); }
     .host-traits > span:nth-child(3) { border-left: 0; border-top: 1px solid rgba(214, 183, 81, .16); }
@@ -39,7 +39,7 @@
     .round-bar { grid-template-columns: 1fr 1fr; }
     .round-bar__phase { grid-column: 1 / -1; padding: 14px 0 0; border-top: 1px solid var(--line); border-left: 0; }
     .round-bar .button { grid-column: 1 / -1; }
-    .traits-grid, .player-aside, .special-controls { grid-template-columns: 1fr; }
+    .traits-grid, .player-aside, .special-controls, .secret-share-response { grid-template-columns: 1fr; }
     .host-special-lab__controls { grid-template-columns: 1fr; }
     .trait-card:nth-child(even) { border-left: 0; padding-left: 14px; }
     .trait-card--special { grid-column: auto; }

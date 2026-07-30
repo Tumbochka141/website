@@ -24,6 +24,147 @@
 .scenario-card h2 { margin: 11px 0 6px; font-size: 1rem; line-height: 1.3; }
 .scenario-card p { margin: 0; color: var(--cream-muted); font-size: .77rem; line-height: 1.5; }
 .scenario-card--danger { background-color: var(--wine); background-image: repeating-linear-gradient(135deg, transparent 0 18px, rgba(255, 255, 255, .018) 18px 20px); }
+.scenario-card.is-threat-active { background: linear-gradient(145deg, rgba(115, 20, 38, .82), rgba(7, 28, 46, .94)); box-shadow: inset 4px 0 0 var(--gold-bright); }
+.scenario-card.is-threat-survived { background: linear-gradient(145deg, rgba(38, 96, 76, .5), rgba(7, 28, 46, .94)); box-shadow: inset 4px 0 0 #70c69b; }
+.scenario-card.is-threat-failed { background: linear-gradient(145deg, rgba(115, 20, 38, .95), rgba(43, 8, 18, .98)); box-shadow: inset 4px 0 0 #e56e6e; }
+.scenario-card.is-threat-inactive { opacity: .58; filter: saturate(.45); }
+.scenario-card .threat-resolution-status { margin-top: 14px; padding: 10px 11px; color: var(--cream); background: rgba(7, 28, 46, .42); border: 1px solid rgba(214, 183, 81, .24); border-radius: 7px; font-size: .68rem; font-weight: 700; }
+.threat-resolution-actions { display: grid; gap: 7px; margin-top: 10px; }
+.threat-resolution-actions .button { width: 100%; min-height: 36px; margin-top: 0; padding-inline: 9px; }
+.scenario-card.has-bunker-effect { box-shadow: inset 3px 0 0 rgba(214, 183, 81, .46); }
+.scenario-card.has-bunker-sabotage { box-shadow: inset 3px 0 0 #d87575; }
+.scenario-card.has-pending-bunker-vote {
+    background: linear-gradient(145deg, rgba(115, 20, 38, .76), rgba(7, 28, 46, .96));
+    box-shadow: inset 4px 0 0 var(--gold-bright);
+}
+.bunker-effect-result,
+.bunker-sabotage-list {
+    display: grid;
+    gap: 4px;
+    margin-top: 12px;
+    padding: 10px 11px;
+    background: rgba(7, 28, 46, .46);
+    border: 1px solid rgba(214, 183, 81, .25);
+    border-radius: 7px;
+}
+.bunker-effect-result strong {
+    color: var(--gold-bright);
+    font-size: .63rem;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+.bunker-effect-result span,
+.bunker-sabotage-list span {
+    color: var(--cream);
+    font-size: .68rem;
+    line-height: 1.45;
+}
+.bunker-effect-result[data-effect-status="success"],
+.bunker-effect-result[data-effect-status="survived"],
+.bunker-effect-result[data-effect-status="resolved"] { border-color: rgba(112, 198, 155, .62); }
+.bunker-effect-result[data-effect-status="failed"],
+.bunker-effect-result[data-effect-status="dead"],
+.bunker-effect-result[data-effect-status="error"],
+.bunker-effect-result[data-effect-outcome="destroyed_all"],
+.bunker-effect-result[data-effect-outcome="player_killed"],
+.bunker-effect-result[data-effect-outcome="sacrificed"] { border-color: rgba(229, 110, 110, .75); }
+.bunker-effect-result[data-effect-status="pending"],
+.bunker-effect-result[data-effect-status="voting"],
+.bunker-effect-result[data-effect-status="awaiting_final"] { border-color: rgba(238, 198, 64, .72); }
+.bunker-sabotage-list {
+    background: rgba(115, 20, 38, .28);
+    border-color: rgba(229, 110, 110, .65);
+}
+.bunker-sabotage-list span::before {
+    content: "!";
+    display: inline-grid;
+    width: 17px;
+    height: 17px;
+    place-items: center;
+    margin-right: 6px;
+    color: var(--cream);
+    background: var(--wine);
+    border: 1px solid #d87575;
+    border-radius: 50%;
+    font-weight: 900;
+}
+.bunker-vote-controls {
+    display: grid;
+    gap: 9px;
+    margin-top: 14px;
+    padding: 13px;
+    background: rgba(7, 28, 46, .72);
+    border: 1px solid rgba(238, 198, 64, .64);
+    border-radius: 9px;
+}
+.bunker-vote-controls > strong { color: var(--gold-bright); font-size: .76rem; }
+.scenario-card .bunker-vote-controls > p { color: var(--cream); font-size: .68rem; }
+.bunker-vote-controls > small,
+.bunker-vote-controls__waiting { color: var(--cream-muted); font-size: .62rem; line-height: 1.4; }
+.bunker-vote-controls select {
+    width: 100%;
+    min-height: 39px;
+    padding: 7px 9px;
+    color: var(--cream);
+    background: var(--navy-950);
+    border: 1px solid rgba(214, 183, 81, .42);
+    border-radius: 7px;
+}
+.bunker-vote-controls select:focus-visible { outline: 2px solid var(--gold-bright); outline-offset: 2px; }
+.bunker-vote-controls > div { display: grid; gap: 7px; }
+.bunker-vote-controls .button { width: 100%; min-height: 37px; margin-top: 0; }
+body.has-pending-bunker-vote .shared-vote-panel,
+body.has-pending-bunker-vote .mode-view {
+    opacity: .48;
+    filter: saturate(.55);
+    pointer-events: none;
+    user-select: none;
+}
+body.has-pending-bunker-vote .shared-special-panel:not(.can-react-during-bunker-vote) {
+    opacity: .48;
+    filter: saturate(.55);
+    pointer-events: none;
+    user-select: none;
+}
+body.has-pending-bunker-vote .shared-special-panel.can-react-during-bunker-vote {
+    border-color: var(--gold-bright);
+    box-shadow: inset 4px 0 0 var(--gold-bright);
+}
+body .player-row.is-bunker-king,
+body #player-roster > p.is-bunker-king {
+    border-color: var(--gold-bright);
+    box-shadow: inset 4px 0 0 var(--gold-bright);
+}
+body .player-row.is-bunker-king strong::after {
+    content: "ЦАРЬ";
+    margin-left: 7px;
+    color: var(--gold-bright);
+    font-size: .5rem;
+    letter-spacing: .08em;
+}
+body .player-row.is-dead,
+body #player-roster > p.is-dead {
+    opacity: .52;
+    filter: grayscale(.7);
+}
+.player-row.has-trait-shuffle,
+#player-roster > p.has-trait-shuffle {
+    background: linear-gradient(90deg, rgba(214, 183, 81, .1), transparent 72%);
+    box-shadow: inset 3px 0 0 rgba(238, 198, 64, .72);
+}
+.trait-shuffle-badge {
+    width: fit-content;
+    margin-top: 3px;
+    padding: 3px 6px;
+    color: var(--gold-bright);
+    background: rgba(214, 183, 81, .09);
+    border: 1px solid rgba(238, 198, 64, .3);
+    border-radius: 999px;
+    font-size: .54rem;
+    font-weight: 800;
+    letter-spacing: .045em;
+    text-transform: uppercase;
+}
 .link-button { align-self: start; margin-top: auto; padding: 10px 0 0; color: var(--gold-bright); background: none; border: 0; font-size: .66rem; font-weight: 800; }
 
 .mode-view { display: none; grid-column: 1 / -1; margin-top: 0; }

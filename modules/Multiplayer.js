@@ -231,7 +231,7 @@ export class Multiplayer {
         };
         const playerIds = new Set([
             ...Object.keys(playersSnapshot.val() ?? {}),
-            ...Object.keys(engineSnapshot.val()?.hands ?? {})
+            ...(engineSnapshot.val()?.order ?? [])
         ]);
         for (const playerId of playerIds) {
             patch[`${roomPath}/hands/${playerId}`] = null;
@@ -256,24 +256,34 @@ export class Multiplayer {
 
         const playerIds = new Set([
             ...Object.keys(playersSnapshot.val() ?? {}),
-            ...Object.keys(engineSnapshot.val()?.hands ?? {})
+            ...(engineSnapshot.val()?.order ?? [])
         ]);
-        const patch = {
-            [`${roomPath}/engine`]: null,
-            [`${roomPath}/public`]: null,
-            [`${roomPath}/meta`]: null
-        };
-        for (const playerId of playerIds) {
-            patch[`${roomPath}/players/${playerId}`] = null;
-            patch[`${roomPath}/hands/${playerId}`] = null;
-        }
-        for (const commandId of Object.keys(commandsSnapshot.val() ?? {})) {
-            patch[`${roomPath}/commands/${commandId}`] = null;
-        }
 
         await onDisconnect(this.playerRef).cancel();
-        await update(ref(this.db), patch);
+
+        // Meta хранит hostId, на который опираются правила удаления остальных
+        // веток комнаты. Поэтому удаляем его последним, а не одним root-update.
+        await remove(ref(this.db, `${roomPath}/public`));
+        await remove(ref(this.db, `${roomPath}/engine`));
+        for (const playerId of playerIds) {
+            await remove(ref(this.db, `${roomPath}/hands/${playerId}`));
+        }
+        for (const commandId of Object.keys(commandsSnapshot.val() ?? {})) {
+            await remove(ref(this.db, `${roomPath}/commands/${commandId}`));
+        }
+        for (const playerId of playerIds) {
+            if (playerId !== this.user.uid) {
+                await remove(ref(this.db, `${roomPath}/players/${playerId}`));
+            }
+        }
+
+        // Не даём локальным подпискам принять промежуточное удаление ведущего
+        // за чужое закрытие комнаты.
         this.clearListeners();
+        if (playerIds.has(this.user.uid)) {
+            await remove(ref(this.db, `${roomPath}/players/${this.user.uid}`));
+        }
+        await remove(ref(this.db, `${roomPath}/meta`));
         this.roomId = null;
         this.playerRef = null;
     }

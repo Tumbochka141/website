@@ -1640,6 +1640,14 @@ export function drawTraitCard(trait, random = Math.random) {
     return pick(deck, random);
 }
 
+export function drawDistinctTraitCard(trait, excludedValues = [], random = Math.random) {
+    const deck = TRAIT_DECKS[trait];
+    if (!deck) throw new Error("Неизвестная колода характеристик.");
+    const excluded = new Set(excludedValues);
+    const available = deck.filter((value) => !excluded.has(value));
+    return pick(available.length ? available : deck, random);
+}
+
 export function drawSpecialCard(random = Math.random) {
     return { ...pick(SPECIAL_CARDS, random) };
 }
@@ -1649,6 +1657,30 @@ export function drawScenarioCard(type, random = Math.random) {
     const deck = decks[type];
     if (!deck) throw new Error("Неизвестная колода сценариев.");
     return { ...pick(deck, random) };
+}
+
+export function findScenarioCard(type, reference = {}) {
+    const decks = { catastrophe: CATASTROPHES, bunker: BUNKERS, threat: THREATS };
+    const deck = decks[type];
+    if (!deck) throw new Error("Неизвестная колода сценариев.");
+    const cardId = Number(reference?.cardId ?? reference?.id ?? 0);
+    const title = String(reference?.title ?? "");
+    const description = String(reference?.description ?? "");
+    const card = deck.find((item) => (
+        (cardId && Number(item.id) === cardId)
+        || (title && item.title === title)
+        || (description && item.description === description)
+    ));
+    return card ? { ...card } : null;
+}
+
+export function drawDistinctScenarioCard(type, excludedTitles = [], random = Math.random) {
+    const decks = { catastrophe: CATASTROPHES, bunker: BUNKERS, threat: THREATS };
+    const deck = decks[type];
+    if (!deck) throw new Error("Неизвестная колода сценариев.");
+    const excluded = new Set(excludedTitles);
+    const available = deck.filter((card) => !excluded.has(card.title));
+    return { ...pick(available.length ? available : deck, random) };
 }
 
 function pick(items, random) {
