@@ -206,7 +206,7 @@ test("первый раунд завершается без голосовани
 });
 
 test("со второго раунда обсуждение переходит в голосование", () => {
-    const engine = makeGame();
+    const engine = makeGame(7, 3);
     finishRevealRound(engine);
     send(engine, "NEXT_PHASE", "host");
     finishRevealRound(engine);
@@ -684,7 +684,7 @@ test("ведущий может пропустить зависший ход, о
 });
 
 test("ничья запускает переголосование только между лидерами", () => {
-    const engine = makeGame(4, 2);
+    const engine = makeGame(7, 3);
     finishRevealRound(engine);
     send(engine, "NEXT_PHASE", "host");
     finishRevealRound(engine);
@@ -751,7 +751,7 @@ test("секретный выбор особой карты виден толь�
 });
 
 test("особую карту можно разыграть без предварительного раскрытия в подходящий момент", () => {
-    const engine = makeGame(4, 2);
+    const engine = makeGame(7, 3);
     assignSpecial(engine, "p2", 46);
     const special = SPECIAL_CARDS.find((card) => card.id === 46);
 
@@ -950,16 +950,17 @@ test("Последняя диверсия уменьшает вместимос�
     const engine = makeGame(8, 3);
     assignSpecial(engine, "p8", 30);
     engine.round = 3;
-    engine.totalRounds = 6;
     engine.phase = PHASES.REVEAL;
     engine.bunkerRoundsRevealed = { 1: true, 2: true, 3: true };
     engine.players.p8.status = "exiled";
+    const finalRoundVotesBefore = engine.voteSchedule[5];
 
     assert.equal(getSpecialAvailability(engine, "p8", 30).allowed, true);
     send(engine, "PLAY_SPECIAL", "p8");
 
     assert.equal(engine.capacity, 2);
-    assert.equal(engine.totalRounds, 7);
+    assert.equal(engine.totalRounds, 5);
+    assert.equal(engine.voteSchedule[5], finalRoundVotesBefore + 1);
     assert.equal(engine.players.p8.specialUsed, true);
     assert.equal(
         Object.values(engine.log).some((entry) =>
@@ -979,7 +980,6 @@ test("Последняя диверсия при ничьей учитывает
     const engine = makeGame(8, 3);
     assignSpecial(engine, "p8", 30);
     engine.round = 3;
-    engine.totalRounds = 6;
     engine.phase = PHASES.RESULTS;
     engine.bunkerRoundsRevealed = { 1: true, 2: true, 3: true };
     engine.players.p8.status = "exiled";
@@ -993,17 +993,22 @@ test("Последняя диверсия при ничьей учитывает
     send(engine, "PLAY_SPECIAL", "p8");
 
     assert.equal(engine.capacity, 2);
-    assert.equal(engine.totalRounds, 7);
+    assert.equal(engine.totalRounds, 5);
+    assert.equal(engine.voteResult.status, "tie");
+    assert.equal(engine.voteSchedule[3], 1, "переголосование остаётся в текущей квоте");
+    assert.equal(engine.voteSchedule[5], 3, "дополнительное место компенсируется до финала");
 });
 
-test("увеличение вместимости ведущим сокращает лишние будущие раунды", () => {
+test("увеличение вместимости ведущим сокращает план голосований, сохраняя пять раундов", () => {
     const engine = makeGame(10, 3);
-    assert.equal(engine.totalRounds, 8);
+    assert.equal(engine.totalRounds, 5);
+    assert.equal(Object.values(engine.voteSchedule).reduce((sum, votes) => sum + votes, 0), 7);
 
     send(engine, "HOST_EDIT", "host", { action: "set_capacity", capacity: 5 });
 
     assert.equal(engine.capacity, 5);
-    assert.equal(engine.totalRounds, 6);
+    assert.equal(engine.totalRounds, 5);
+    assert.equal(Object.values(engine.voteSchedule).reduce((sum, votes) => sum + votes, 0), 5);
 });
 
 test("увеличение вместимости отменяет ставшее ненужным голосование и переголосование", () => {
@@ -1086,7 +1091,7 @@ test("внеочередное изгнание последнего игрок�
 });
 
 test("План Б после результата возвращает изгнанного и начинает чистое переголосование", () => {
-    const engine = makeGame(4, 2);
+    const engine = makeGame(7, 3);
     assignSpecial(engine, "p1", 28);
     beginSecondRound(engine);
     finishRevealRound(engine);
@@ -1109,7 +1114,7 @@ test("План Б после результата возвращает изгн�
 });
 
 test("после отмены Плана Б сохраняется снимок для другой карты №28", () => {
-    const engine = makeGame(4, 2);
+    const engine = makeGame(7, 3);
     assignSpecial(engine, "p1", 28);
     assignSpecial(engine, "p2", 71);
     assignSpecial(engine, "p3", 28);
@@ -1119,14 +1124,19 @@ test("после отмены Плана Б сохраняется снимок 
     for (const id of engine.order) send(engine, "VOTE", id, { targetId: "p4" });
     send(engine, "NEXT_PHASE", "host");
 
+    const originalVoteCycle = engine.voteCycle;
     send(engine, "PLAY_SPECIAL", "p1");
+    const firstPlanBVoteCycle = engine.voteCycle;
     send(engine, "PLAY_SPECIAL", "p2");
 
     assert.equal(engine.phase, PHASES.RESULTS);
+    assert.ok(firstPlanBVoteCycle > originalVoteCycle);
+    assert.equal(engine.voteCycle, firstPlanBVoteCycle, "отмена не возвращает уже использованный номер голосования");
     assert.ok(engine.preVotingResultSnapshot);
     assert.doesNotThrow(() => assertFirebaseSafe(engine));
     assert.doesNotThrow(() => send(engine, "PLAY_SPECIAL", "p3"));
     assert.equal(engine.phase, PHASES.VOTING);
+    assert.ok(engine.voteCycle > firstPlanBVoteCycle, "повторный План Б открывает новый цикл голосования");
 });
 
 test("Подмена цели меняет только настоящий выбор предыдущей карты", () => {
@@ -1357,7 +1367,7 @@ test("Чума №41 требует другого игрока и заража�
 });
 
 test("дополнительные карты багажа и здоровья не остаются невидимыми", () => {
-    const engine = makeGame(4, 2);
+    const engine = makeGame(7, 3);
     assignSpecial(engine, "p1", 47);
     beginSecondRound(engine);
     const baggageBefore = engine.characters.p1.baggage;
@@ -1370,7 +1380,7 @@ test("дополнительные карты багажа и здоровья �
 });
 
 test("Порча добавляет и раскрывает здоровье, а не заменяет исходное", () => {
-    const engine = makeGame(4, 2);
+    const engine = makeGame(7, 3);
     assignSpecial(engine, "p1", 65);
     beginSecondRound(engine);
     const healthBefore = engine.characters.p2.health;
@@ -1444,7 +1454,7 @@ test("Переселение душ переносит признак испол
 
 test("Отчаяние и Нумеролог считают людей, а не вес их голосов", () => {
     for (const specialId of [46, 48]) {
-        const engine = makeGame(4, 2);
+        const engine = makeGame(7, 3);
         assignSpecial(engine, "p1", specialId);
         beginSecondRound(engine);
         send(engine, "PLAY_SPECIAL", "p1");
@@ -1460,7 +1470,7 @@ test("Отчаяние и Нумеролог считают людей, а не 
 });
 
 test("штрафы нескольких карт начала раунда складываются", () => {
-    const engine = makeGame(4, 2);
+    const engine = makeGame(7, 3);
     beginSecondRound(engine);
     assignSpecial(engine, "p1", 59);
     assignSpecial(engine, "p2", 61);
@@ -1540,33 +1550,30 @@ test("автоматические штрафы не добавляют новы
 test("обычная партия доходит до финального состава бункера", () => {
     const engine = makeGame(4, 2);
 
+    // По официальной таблице при четырёх игроках во втором и третьем
+    // раундах голосований нет, а изгнания проходят в четвёртом и пятом.
     finishRevealRound(engine);
     send(engine, "NEXT_PHASE", "host");
     finishRevealRound(engine);
     send(engine, "NEXT_PHASE", "host");
+    assert.equal(engine.round, 3);
+    assert.equal(engine.phase, PHASES.REVEAL);
+
+    finishRevealRound(engine);
+    send(engine, "NEXT_PHASE", "host");
+    assert.equal(engine.round, 4);
+    assert.equal(engine.phase, PHASES.REVEAL);
+
+    finishRevealRound(engine);
+    send(engine, "NEXT_PHASE", "host");
+    assert.equal(engine.phase, PHASES.VOTING);
     for (const id of engine.order) send(engine, "VOTE", id, { targetId: "p4" });
     send(engine, "NEXT_PHASE", "host");
     send(engine, "NEXT_PHASE", "host");
 
-    assert.equal(engine.round, 3);
-    assert.equal(engine.phase, PHASES.REVEAL);
-    assert.equal(engine.players.p4.status, "exiled");
-
-    finishRevealRound(engine);
-    send(engine, "NEXT_PHASE", "host");
-    for (const id of ["p1", "p2", "p3", "p4"]) {
-        send(engine, "VOTE", id, { targetId: "p3" });
-    }
-    send(engine, "NEXT_PHASE", "host");
-    send(engine, "NEXT_PHASE", "host");
-
-    assert.equal(engine.phase, PHASES.REVEAL);
-    assert.equal(engine.round, 4);
-
-    finishRevealRound(engine);
-    send(engine, "NEXT_PHASE", "host");
     assert.equal(engine.round, 5);
     assert.equal(engine.phase, PHASES.REVEAL);
+    assert.equal(engine.players.p4.status, "exiled");
 
     finishRevealRound(engine);
     engine.extraScenarios.threat = [{
@@ -1575,6 +1582,13 @@ test("обычная партия доходит до финального со�
         description: "Финалисты должны пройти ещё одну проверку."
     }];
     send(engine, "NEXT_PHASE", "host");
+    assert.equal(engine.phase, PHASES.VOTING);
+    for (const id of ["p1", "p2", "p3", "p4"]) {
+        send(engine, "VOTE", id, { targetId: "p3" });
+    }
+    send(engine, "NEXT_PHASE", "host");
+    send(engine, "NEXT_PHASE", "host");
+
     assert.equal(engine.phase, PHASES.THREAT);
     assert.equal(engine.threat.status, "revealed");
     assert.equal(engine.threatResolution.status, "pending");
@@ -1583,6 +1597,14 @@ test("обычная партия доходит до финального со�
         engine.order.filter((id) => engine.players[id].status === "active"),
         ["p1", "p2"]
     );
+    for (const playerId of engine.order) {
+        assert.equal(
+            TRAIT_KEYS.every((trait) =>
+                engine.players[playerId].revealedTraits[trait] === engine.characters[playerId][trait]),
+            true,
+            `в финале раскрыто всё досье ${playerId}`
+        );
+    }
 
     send(engine, "RESOLVE_THREAT", "host", { outcome: "survived" });
     assert.equal(engine.phase, PHASES.FINISHED);
@@ -1590,11 +1612,11 @@ test("обычная партия доходит до финального со�
 });
 
 test("дополнительные раунды отбора не раскрывают шестую обычную карту", () => {
-    const engine = makeGame(8, 3);
+    const engine = makeGame(8, 4);
     const ordinaryTraits = TRAIT_KEYS.filter((trait) => trait !== "special");
     engine.round = 5;
-    engine.totalRounds = 6;
     engine.phase = PHASES.RESULTS;
+    engine.completedVotesByRound[5] = engine.voteSchedule[5];
     engine.voteResult = {
         status: "exiled",
         exiledPlayerId: "p5",
@@ -1602,7 +1624,7 @@ test("дополнительные раунды отбора не раскрыв
         counts: { p5: 4 }
     };
     engine.bunkerRoundsRevealed = Object.fromEntries(
-        Array.from({ length: engine.totalRounds }, (_, index) => [index + 1, true])
+        Array.from({ length: 6 }, (_, index) => [index + 1, true])
     );
     for (const playerId of engine.order) {
         const active = ["p1", "p2", "p3", "p4"].includes(playerId);
@@ -1612,21 +1634,25 @@ test("дополнительные раунды отбора не раскрыв
             engine.players[playerId].revealedTraits[trait] = engine.characters[playerId][trait];
         }
     }
+    engine.players.p5.secondChance = true;
+    engine.players.p5.revealedBeforeExile = ordinaryTraits.slice(0, 5);
 
     send(engine, "NEXT_PHASE", "host");
 
     assert.equal(engine.round, 6);
+    assert.equal(engine.totalRounds, 6);
     assert.equal(engine.phase, PHASES.DISCUSSION);
     assert.equal(engine.currentPlayerIndex, -1);
-    for (const playerId of ["p1", "p2", "p3", "p4"]) {
+    assert.equal(engine.players.p5.status, "active");
+    for (const playerId of ["p1", "p2", "p3", "p4", "p5"]) {
         const hidden = ordinaryTraits.filter((trait) =>
             !engine.players[playerId].revealedTraits[trait]);
         assert.equal(hidden.length, 1);
     }
 
     send(engine, "NEXT_PHASE", "host");
-    for (const playerId of ["p1", "p2", "p3", "p4"]) {
-        send(engine, "VOTE", playerId, { targetId: "p4" });
+    for (const playerId of ["p1", "p2", "p3", "p4", "p5"]) {
+        send(engine, "VOTE", playerId, { targetId: "p5" });
     }
     send(engine, "NEXT_PHASE", "host");
     send(engine, "NEXT_PHASE", "host");
@@ -1634,12 +1660,12 @@ test("дополнительные раунды отбора не раскрыв
     assert.ok([PHASES.THREAT, PHASES.FINISHED].includes(engine.phase));
     assert.deepEqual(
         engine.order.filter((id) => engine.players[id].status === "active"),
-        ["p1", "p2", "p3"]
+        ["p1", "p2", "p3", "p4"]
     );
-    for (const playerId of ["p1", "p2", "p3"]) {
+    for (const playerId of ["p1", "p2", "p3", "p4"]) {
         assert.equal(
             ordinaryTraits.filter((trait) => !engine.players[playerId].revealedTraits[trait]).length,
-            1
+            0
         );
     }
 });
@@ -1986,7 +2012,7 @@ test("после начала финальной угрозы условия и 
 });
 
 test("после изгнания раскрывается всё досье игрока", () => {
-    const engine = makeGame(4, 2);
+    const engine = makeGame(7, 3);
     finishRevealRound(engine);
     send(engine, "NEXT_PHASE", "host");
     finishRevealRound(engine);

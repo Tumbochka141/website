@@ -10,6 +10,7 @@ import {
     createInitialGame,
     createPrivateStates,
     createPublicState,
+    getOfficialBunkerCapacity,
     getSpecialAvailability
 } from "./engine.js";
 import { SPECIAL_CARDS } from "./cards.js";
@@ -192,7 +193,7 @@ function configureFileMode() {
 
 function bindEvents() {
     ui.createRoomButton.addEventListener("click", () => run(async () => {
-        const roomCode = await createRoom(readPlayerName(), 16);
+        const roomCode = await createRoom(readPlayerName(), 17);
         showConnectedRoom(roomCode);
     }));
 
@@ -356,8 +357,10 @@ function bindEvents() {
 
     ui.hostPlays.addEventListener("change", () => run(syncRoomSettings));
     ui.developerMode.addEventListener("change", () => run(syncRoomSettings));
-    ui.playerCount.addEventListener("change", () => run(syncRoomSettings));
-    ui.bunkerCapacity.addEventListener("change", () => run(syncRoomSettings));
+    ui.playerCount.addEventListener("change", () => {
+        syncBunkerCapacityControl();
+        run(syncRoomSettings);
+    });
 
     ui.playersList.addEventListener("click", (event) => {
         const button = event.target.closest("[data-kick-player]");
@@ -555,7 +558,7 @@ function renderRoom() {
     ui.hostPlays.disabled = !host || playing;
     ui.developerMode.disabled = !host || playing;
     ui.playerCount.disabled = !host || playing;
-    ui.bunkerCapacity.disabled = !host || playing;
+    ui.bunkerCapacity.disabled = true;
     if (host && playing && publicState?.players) {
         ui.hostPlays.checked = Boolean(publicState.players[room.meta.hostId]);
     }
@@ -598,21 +601,28 @@ function renderRoom() {
 
 function getRoomSettings() {
     const settings = room?.meta?.settings ?? {};
+    const playerCount = normalizeRoomNumber(settings.playerCount, 8, 4, 16);
     return {
-        playerCount: normalizeRoomNumber(settings.playerCount, 8, 6, 15),
-        bunkerCapacity: normalizeRoomNumber(settings.bunkerCapacity, 4, 3, 7),
+        playerCount,
+        bunkerCapacity: getOfficialBunkerCapacity(playerCount),
         hostPlays: settings.hostPlays === true,
         developerMode: settings.developerMode === true
     };
 }
 
 function readRoomSettingsFromControls() {
+    const playerCount = normalizeRoomNumber(ui.playerCount.value, 8, 4, 16);
     return {
-        playerCount: normalizeRoomNumber(ui.playerCount.value, 8, 6, 15),
-        bunkerCapacity: normalizeRoomNumber(ui.bunkerCapacity.value, 4, 3, 7),
+        playerCount,
+        bunkerCapacity: getOfficialBunkerCapacity(playerCount),
         hostPlays: ui.hostPlays.checked,
         developerMode: ui.developerMode.checked
     };
+}
+
+function syncBunkerCapacityControl() {
+    const playerCount = normalizeRoomNumber(ui.playerCount.value, 8, 4, 16);
+    ui.bunkerCapacity.value = String(getOfficialBunkerCapacity(playerCount));
 }
 
 function normalizeRoomNumber(value, fallback, minimum, maximum) {
@@ -679,7 +689,9 @@ function renderGame() {
     ui.playersAlive.textContent = activePlayers.length;
     ui.playersTotal.textContent = Object.keys(players).length;
     ui.bunkerSlots.textContent = Number(publicState.capacity ?? 0);
-    const visiblePhase = bunkerVotePending ? bunkerVoteTitle(publicState.pendingBunkerVote) : getPhaseLabel(publicState.phase);
+    const visiblePhase = bunkerVotePending
+        ? bunkerVoteTitle(publicState.pendingBunkerVote)
+        : getDetailedPhaseLabel(publicState.phase);
     ui.roundPhase.textContent = visiblePhase;
     ui.roundTogglePhase.textContent = visiblePhase;
     ui.setupPanel.hidden = true;
@@ -703,6 +715,81 @@ function renderGame() {
     }
 }
 
+function getScheduledVotesForRound(round) {
+    const normalizedRound = Math.max(1, Number(round ?? 1));
+    const currentRound = Number(publicState?.round ?? 0);
+    const currentTarget = Number(publicState?.roundVoteTarget);
+    if (normalizedRound === currentRound && Number.isFinite(currentTarget)) {
+        return Math.max(0, currentTarget);
+    }
+
+    const schedule = publicState?.voteSchedule;
+    if (Array.isArray(schedule)) {
+        const totalRounds = Math.max(1, Number(publicState?.totalRounds ?? 5));
+        const index = schedule.length > totalRounds ? normalizedRound : normalizedRound - 1;
+        return Math.max(0, Number(schedule[index] ?? 0));
+    }
+    if (schedule && typeof schedule === "object") {
+        return Math.max(0, Number(schedule[normalizedRound] ?? 0));
+    }
+    return normalizedRound === 1 ? 0 : 1;
+}
+
+function getCurrentRoundVoteProgress() {
+    const target = getScheduledVotesForRound(publicState?.round);
+    const completed = Math.min(target, Math.max(0, Number(publicState?.roundVotesCompleted ?? 0)));
+    const resultAlreadyCounted = publicState?.phase === PHASES.RESULTS
+        && publicState?.voteResult?.status === "exiled";
+    const current = target > 0
+        ? Math.min(target, Math.max(1, completed + (resultAlreadyCounted ? 0 : 1)))
+        : 0;
+    return { target, completed, current };
+}
+
+function getVoteProgressText() {
+    const { target, current } = getCurrentRoundVoteProgress();
+    return target > 0 ? `${current}/${target}` : "";
+}
+
+function voteCountText(count) {
+    const value = Math.max(0, Number(count) || 0);
+    const remainder100 = value % 100;
+    const remainder10 = value % 10;
+    const noun = remainder100 >= 11 && remainder100 <= 14
+        ? "голосований"
+        : remainder10 === 1
+            ? "голосование"
+            : remainder10 >= 2 && remainder10 <= 4
+                ? "голосования"
+                : "голосований";
+    return `${value} ${noun}`;
+}
+
+function getDetailedPhaseLabel(phase) {
+    const { target, completed } = getCurrentRoundVoteProgress();
+    const progress = getVoteProgressText();
+    if (phase === PHASES.VOTING && progress) return `Голосование ${progress}`;
+    if (phase === PHASES.RESULTS && progress) return `Результат голосования ${progress}`;
+    if (phase === PHASES.DISCUSSION && completed < target && progress) return `Обсуждение · далее ${progress}`;
+    if (phase === PHASES.DISCUSSION && completed >= target) return "Обсуждение · без голосования";
+    return getPhaseLabel(phase);
+}
+
+function getRoundTimelineStatus(round, complete, current) {
+    const target = getScheduledVotesForRound(round);
+    if (complete) return target > 0 ? `Пройдено · ${voteCountText(target)}` : "Пройдено · без голосования";
+    if (!current) return target > 0 ? `Ожидает · ${voteCountText(target)}` : "Ожидает · без голосования";
+
+    const phase = publicState?.phase;
+    const progress = getVoteProgressText();
+    if ([PHASES.VOTING, PHASES.RESULTS].includes(phase) && progress) {
+        return `${getPhaseLabel(phase)} · ${progress}`;
+    }
+    if (target === 0) return `${getPhaseLabel(phase)} · без голосования`;
+    if (phase === PHASES.DISCUSSION && progress) return `Обсуждение · далее ${progress}`;
+    return `${getPhaseLabel(phase)} · ${voteCountText(target)}`;
+}
+
 function renderRoundProgress() {
     const currentRound = Number(publicState?.round ?? 0);
     const totalRounds = Math.max(currentRound, Number(publicState?.totalRounds ?? 0));
@@ -717,7 +804,7 @@ function renderRoundProgress() {
         const current = round === currentRound && !finalStage;
         number.textContent = String(round).padStart(2, "0");
         label.textContent = `Раунд ${round}`;
-        status.textContent = complete ? "Пройден" : current ? getPhaseLabel(publicState.phase) : "Ожидает";
+        status.textContent = getRoundTimelineStatus(round, complete, current);
         item.classList.toggle("is-complete", complete);
         item.classList.toggle("is-current", current);
         if (current) item.setAttribute("aria-current", "step");
@@ -1589,7 +1676,8 @@ function renderVoting() {
     ) && !myPlayer.voteDisabled);
 
     ui.votePanel.hidden = ![PHASES.VOTING, PHASES.RESULTS].includes(publicState.phase);
-    ui.voteRoundLabel.textContent = `Раунд ${publicState.round}`;
+    const voteProgress = getVoteProgressText();
+    ui.voteRoundLabel.textContent = `Раунд ${publicState.round}${voteProgress ? ` · голосование ${voteProgress}` : ""}`;
 
     if (selectedVoteTarget && (!players[selectedVoteTarget] || (revoteCandidates.length && !revoteCandidates.includes(selectedVoteTarget)))) {
         selectedVoteTarget = "";
@@ -1625,6 +1713,8 @@ function renderVoting() {
 
 function voteStatusText(players) {
     const result = publicState.voteResult;
+    const voteProgress = getVoteProgressText();
+    const votePrefix = voteProgress ? `Голосование ${voteProgress}. ` : "";
     if (publicState.phase === PHASES.VOTING) {
         const eligibleVoters = Object.entries(players).filter(([id, player]) => (
             (
@@ -1638,15 +1728,15 @@ function voteStatusText(players) {
         const progress = `Проголосовали: ${submitted}/${eligibleVoters.length}.`;
         if (result?.status === "tie") {
             const names = (result.candidates ?? []).map((id) => players[id]?.name).filter(Boolean);
-            return `Переголосование: ${names.join(" или ")}. ${progress} Голос можно менять до закрытия.`;
+            return `${votePrefix}Переголосование: ${names.join(" или ")}. ${progress} Голос можно менять до закрытия.`;
         }
-        return `Выберите кандидата. ${progress} Голос можно менять до закрытия голосования.`;
+        return `${votePrefix}Выберите кандидата. ${progress} Голос можно менять до закрытия голосования.`;
     }
     if (publicState.phase === PHASES.RESULTS && result?.status === "exiled") {
-        return `${players[result.exiledPlayerId]?.name ?? "Игрок"} изгнан из группы.`;
+        return `${votePrefix}${players[result.exiledPlayerId]?.name ?? "Игрок"} изгнан из группы.`;
     }
     if (publicState.phase === PHASES.RESULTS && result?.status === "tie") {
-        return "Ничья. Ведущий должен начать переголосование.";
+        return `${votePrefix}Ничья. Ведущий должен начать переголосование.`;
     }
     if (publicState.phase === PHASES.FINISHED && publicState.threatResolution?.status === "failed") {
         return "Финальная угроза не устранена — бункер не выжил.";
@@ -1667,6 +1757,11 @@ function renderControls() {
     );
     const currentPlayerId = publicState.order?.[publicState.currentPlayerIndex];
     const currentPlayer = currentPlayerId ? publicState.players?.[currentPlayerId] : null;
+    const { target: voteTarget, completed: completedVotes, current: currentVote } = getCurrentRoundVoteProgress();
+    const activePlayerCount = Object.values(publicState.players ?? {})
+        .filter((player) => player.status === "active").length;
+    const hasAnotherVote = completedVotes < voteTarget
+        && activePlayerCount > Number(publicState.capacity ?? 0);
     ui.skipTurn.hidden = !host || phase !== PHASES.REVEAL || !currentPlayer;
     ui.skipTurn.disabled = (bunkerVotePending && !pendingSpecialAction)
         || !host
@@ -1682,14 +1777,20 @@ function renderControls() {
     ui.nextPhase.textContent = pendingSpecialAction
         ? "Отменить зависшее действие спецкарты"
         : phase === PHASES.DISCUSSION
-        ? publicState.round === 1
-            ? "Начать раунд 2 без голосования →"
-            : "Начать голосование →"
+        ? hasAnotherVote
+            ? `Начать голосование ${completedVotes + 1}/${voteTarget} →`
+            : Number(publicState.round ?? 0) >= Number(publicState.totalRounds ?? 0)
+                ? "Завершить раунд →"
+                : `Начать раунд ${Number(publicState.round ?? 0) + 1} без голосования →`
         : phase === PHASES.VOTING
-            ? "Закрыть голосование →"
+            ? `Закрыть голосование${voteTarget > 0 ? ` ${currentVote}/${voteTarget}` : ""} →`
             : publicState.voteResult?.status === "tie"
-                ? "Переголосовать →"
-                : "Следующий раунд →";
+                ? `Переголосовать${voteTarget > 0 ? ` ${currentVote}/${voteTarget}` : ""} →`
+                : hasAnotherVote
+                    ? `Подготовить голосование ${completedVotes + 1}/${voteTarget} →`
+                    : Number(publicState.round ?? 0) >= Number(publicState.totalRounds ?? 0)
+                        ? "Завершить раунд →"
+                        : "Следующий раунд →";
     ui.roundDrawerToggle.classList.toggle(
         "needs-attention",
         bunkerVotePending
@@ -1839,7 +1940,10 @@ async function runDeveloperBotStep() {
 
 async function sendCommand(type, data = {}) {
     if (!multiplayer?.roomId) throw new Error("Сначала войдите в комнату.");
-    await multiplayer.sendCommand(type, data, Number(publicState?.revision ?? 0));
+    const commandData = type === "VOTE"
+        ? { ...data, voteCycle: Number(publicState?.voteCycle ?? 0) }
+        : data;
+    await multiplayer.sendCommand(type, commandData, Number(publicState?.revision ?? 0));
 }
 
 async function sendHostEdit(data) {
@@ -1882,14 +1986,23 @@ function getStatusMessage() {
     const phase = publicState?.phase;
     const currentPlayerId = publicState?.order?.[publicState?.currentPlayerIndex];
     const currentPlayer = currentPlayerId ? publicState?.players?.[currentPlayerId] : null;
+    const { target: voteTarget, completed: completedVotes } = getCurrentRoundVoteProgress();
+    const voteProgress = getVoteProgressText();
+    const activePlayerCount = Object.values(publicState?.players ?? {})
+        .filter((player) => player.status === "active").length;
     if (publicState?.pendingBunkerVote) {
         return `Карта бункера: ${bunkerVoteTitle(publicState.pendingBunkerVote).toLowerCase()}`;
     }
     if (phase === PHASES.REVEAL && currentPlayer) return `Ходит: ${currentPlayer.name}`;
-    if (phase === PHASES.DISCUSSION && publicState?.round === 1) return "Первый раунд: без голосования";
-    if (phase === PHASES.DISCUSSION) return "Обсуждение перед голосованием";
-    if (phase === PHASES.VOTING) return "Идёт голосование";
-    if (phase === PHASES.RESULTS) return "Результаты голосования";
+    if (
+        phase === PHASES.DISCUSSION
+        && (completedVotes >= voteTarget || activePlayerCount <= Number(publicState?.capacity ?? 0))
+    ) {
+        return `Раунд ${publicState?.round}: без голосования`;
+    }
+    if (phase === PHASES.DISCUSSION) return `Обсуждение перед голосованием ${voteProgress}`;
+    if (phase === PHASES.VOTING) return `Идёт голосование ${voteProgress}`;
+    if (phase === PHASES.RESULTS) return `Результаты голосования ${voteProgress}`;
     if (phase === PHASES.THREAT) return "Финальная угроза: ведущий определяет исход";
     return getPhaseLabel(phase);
 }

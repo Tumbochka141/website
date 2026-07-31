@@ -8,7 +8,7 @@
           ".read": "auth != null",
           ".write": "auth != null && ((!data.exists() && newData.child('hostId').val() === auth.uid) || data.child('hostId').val() === auth.uid)",
           "maxPlayers": {
-            ".validate": "newData.isNumber() && newData.val() >= 2 && newData.val() <= 16"
+            ".validate": "newData.isNumber() && newData.val() >= 2 && newData.val() <= 17"
           },
           "gameType": {
             ".validate": "newData.isString() && (newData.val() === 'uno' || newData.val() === 'bunker' || newData.val() === 'mafia')"

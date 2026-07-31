@@ -48,6 +48,27 @@ const REACTION_SPECIAL_IDS = new Set([50, 71]);
 const SECRET_SPECIAL_IDS = new Set([10, 13, 14, 15, 19]);
 const INTERACTIVE_BUNKER_CARD_IDS = new Set([1, 4, 44, 51, 52, 53, 59, 62, 75]);
 
+export function getOfficialBunkerCapacity(playerCount) {
+    const count = Math.max(0, Math.trunc(Number(playerCount) || 0));
+    return Math.floor(count / 2);
+}
+
+export function getRoundVoteSchedule(playerCount, capacity = getOfficialBunkerCapacity(playerCount)) {
+    const count = Math.max(0, Math.trunc(Number(playerCount) || 0));
+    const safeCapacity = Math.max(0, Math.min(count, Math.trunc(Number(capacity) || 0)));
+    const exileCount = Math.max(0, count - safeCapacity);
+    const baseVotes = Math.floor(exileCount / 4);
+    const extraVotes = exileCount % 4;
+    const schedule = { 1: 0 };
+
+    for (let index = 0; index < 4; index += 1) {
+        const round = index + 2;
+        schedule[round] = baseVotes + (index >= 4 - extraVotes ? 1 : 0);
+    }
+
+    return schedule;
+}
+
 export function getSpecialAvailability(state, playerId, specialId) {
     const id = Number(specialId ?? 0);
     const player = state?.players?.[playerId];
@@ -76,7 +97,23 @@ export function getSpecialAvailability(state, playerId, specialId) {
     }
 
     const activeCount = Object.values(state.players ?? {}).filter((item) => item.status === "active").length;
-    const hasUpcomingVote = Number(state.round ?? 0) >= 2 && activeCount > Number(state.capacity ?? 0);
+    const round = Number(state.round ?? 0);
+    const roundVoteTarget = Number(
+        state.roundVoteTarget
+        ?? state.voteSchedule?.[round]
+        ?? (round >= 2 ? 1 : 0)
+    );
+    const roundVotesCompleted = Number(
+        state.roundVotesCompleted
+        ?? state.completedVotesByRound?.[round]
+        ?? 0
+    );
+    const hasUpcomingVote = activeCount > Number(state.capacity ?? 0)
+        && (
+            state.phase === PHASES.VOTING
+            || (state.phase === PHASES.RESULTS && state.voteResult?.status === "tie")
+            || roundVoteTarget > roundVotesCompleted
+        );
     if (BEFORE_VOTING_SPECIAL_IDS.has(id)) {
         if (!hasUpcomingVote) {
             return { allowed: false, reason: "Эта карта применяется перед голосованием, а голосование сейчас не ожидается." };
@@ -174,8 +211,12 @@ export function createInitialGame(players, capacity, random = Math.random) {
         randomState: randomState || 1,
         phase: PHASES.REVEAL,
         round: 1,
-        totalRounds: Math.max(MINIMUM_GAME_ROUNDS, players.length - capacity + 1),
+        totalRounds: MINIMUM_GAME_ROUNDS,
         capacity,
+        initialPlayerCount: players.length,
+        voteSchedule: getRoundVoteSchedule(players.length, capacity),
+        completedVotesByRound: {},
+        voteCycle: 0,
         order,
         currentPlayerIndex: 0,
         players: playerStates,
@@ -210,6 +251,7 @@ export function createInitialGame(players, capacity, random = Math.random) {
 
 export function applyCommand(engine, command, hostId) {
     const requiresExactRevision = [
+        "NEXT_PHASE",
         "PLAY_SPECIAL",
         "RESPOND_SECRET_SHARE",
         "CANCEL_PENDING"
@@ -221,6 +263,8 @@ export function applyCommand(engine, command, hostId) {
     ) {
         throw new Error("Команда устарела: состояние партии уже изменилось.");
     }
+    ensureVotingPlan(engine);
+    reconcileVotingPlan(engine);
     const introducedBunkerVote = migrateScenarioMetadata(engine);
     const isHostPendingSpecialCancel = command.type === "CANCEL_PENDING"
         && command.from === hostId;
@@ -314,6 +358,7 @@ export function applyCommand(engine, command, hostId) {
             return false;
     }
 
+    reconcileVotingPlan(engine);
     ensureBunkerCardsForCurrentRound(engine);
     engine.revision += 1;
     return true;
@@ -342,6 +387,11 @@ export function createPublicState(engine) {
         round: engine.round,
         totalRounds: engine.totalRounds,
         capacity: engine.capacity,
+        initialPlayerCount: Number(engine.initialPlayerCount ?? engine.order?.length ?? 0),
+        voteSchedule: { ...(engine.voteSchedule ?? {}) },
+        roundVoteTarget: roundVoteTarget(engine),
+        roundVotesCompleted: completedRoundVotes(engine),
+        voteCycle: Number(engine.voteCycle ?? 0),
         order: engine.order,
         currentPlayerIndex: engine.currentPlayerIndex,
         requiredTrait: engine.roundEffects?.forcedTrait ?? "",
@@ -561,6 +611,12 @@ function vote(engine, command) {
     const voter = engine.players?.[voterId];
     const target = engine.players?.[targetId];
 
+    if (
+        command.data?.voteCycle !== undefined
+        && Number(command.data.voteCycle) !== Number(engine.voteCycle ?? 0)
+    ) {
+        throw new Error("Голосование уже сменилось. Выберите кандидата заново.");
+    }
     if (engine.phase !== PHASES.VOTING) throw new Error("Сейчас голосование не проводится.");
     if (!voter || !votingPlayerIds(engine).includes(voterId)) throw new Error("Вы не участвуете в голосовании.");
     if (!target || target.status !== "active") throw new Error("Нельзя голосовать за этого игрока.");
@@ -591,49 +647,13 @@ function nextPhase(engine, command, hostId) {
     }
 
     if (engine.phase === PHASES.DISCUSSION) {
-        let activeIds = activePlayerIds(engine);
-        if (activeIds.length <= engine.capacity) {
-            const returnedIds = applySecondChances(engine);
-            activeIds = activePlayerIds(engine);
-            if (returnedIds.length) {
-                engine.totalRounds = Math.max(
-                    MINIMUM_GAME_ROUNDS,
-                    engine.totalRounds,
-                    engine.round + Math.max(1, activeIds.length - engine.capacity)
-                );
-                appendLog(engine, "Игроки со «Вторым шансом» возвращаются в следующем раунде.");
-                beginNextRound(engine, activeIds);
-                return;
-            }
-            if (engine.round >= engine.totalRounds) {
-                finishGame(engine, activeIds);
-            } else {
-                appendLog(engine, "Состав бункера уже определён. Следующий раунд пройдёт без голосования.");
-                beginNextRound(engine, activeIds);
-            }
+        const activeIds = activePlayerIds(engine);
+        if (activeIds.length > engine.capacity && remainingRoundVotes(engine) > 0) {
+            openVoting(engine);
             return;
         }
 
-        if (engine.round === 1) {
-            const returnedIds = applySecondChances(engine);
-            const nextActiveIds = activePlayerIds(engine);
-            if (returnedIds.length) {
-                engine.totalRounds = Math.max(
-                    MINIMUM_GAME_ROUNDS,
-                    engine.totalRounds,
-                    engine.round + Math.max(1, nextActiveIds.length - engine.capacity)
-                );
-                appendLog(engine, "Игроки со «Вторым шансом» возвращаются в следующем раунде.");
-            }
-            beginNextRound(engine, nextActiveIds);
-            return;
-        }
-
-        engine.phase = PHASES.VOTING;
-        engine.currentPlayerIndex = -1;
-        engine.voteResult = emptyVoteResult();
-        resetVotes(engine);
-        appendLog(engine, "Ведущий открыл голосование.");
+        completeCurrentRound(engine);
         return;
     }
 
@@ -732,6 +752,7 @@ function closeVoting(engine) {
         if (!exilePlayer(engine, exiledPlayerId)) {
             throw new Error("Выбранного игрока нельзя изгнать.");
         }
+        markRoundVoteCompleted(engine);
         engine.voteResult = { status: "exiled", exiledPlayerId, candidates: leaders, counts };
         appendLog(engine, `${engine.players[exiledPlayerId].name} изгнан из группы.`);
     } else {
@@ -745,30 +766,77 @@ function continueAfterResults(engine) {
     if (engine.voteResult.status === "tie") {
         engine.phase = PHASES.VOTING;
         engine.currentPlayerIndex = -1;
+        advanceVoteCycle(engine);
         resetVotes(engine);
         appendLog(engine, "Началось переголосование между лидерами.");
         return;
     }
 
     if (engine.voteResult.status !== "exiled") throw new Error("Результат голосования ещё не готов.");
-    const returnedIds = applySecondChances(engine);
     const activeIds = activePlayerIds(engine);
-    engine.totalRounds = Math.max(
-        MINIMUM_GAME_ROUNDS,
-        engine.totalRounds,
-        returnedIds.length ? engine.round + 1 : engine.round,
-        requiredTotalRoundsForCapacity(engine)
-    );
-    if (activeIds.length <= engine.capacity) {
-        if (engine.round >= engine.totalRounds) {
-            finishGame(engine, activeIds);
-        } else {
-            appendLog(engine, "Состав бункера определён досрочно. Оставшиеся раунды пройдут без голосования.");
-            beginNextRound(engine, activeIds);
-        }
+    if (activeIds.length > engine.capacity && remainingRoundVotes(engine) > 0) {
+        prepareNextVoteInRound(engine);
         return;
     }
 
+    completeCurrentRound(engine);
+}
+
+function openVoting(engine) {
+    const voteNumber = completedRoundVotes(engine) + 1;
+    const voteTarget = roundVoteTarget(engine);
+    engine.phase = PHASES.VOTING;
+    engine.currentPlayerIndex = -1;
+    engine.voteResult = emptyVoteResult();
+    advanceVoteCycle(engine);
+    resetVotes(engine);
+    appendLog(
+        engine,
+        voteTarget > 1
+            ? `Ведущий открыл голосование ${voteNumber} из ${voteTarget} в раунде ${engine.round}.`
+            : "Ведущий открыл голосование."
+    );
+}
+
+function prepareNextVoteInRound(engine) {
+    const nextVoteNumber = completedRoundVotes(engine) + 1;
+    const voteTarget = roundVoteTarget(engine);
+    engine.phase = PHASES.DISCUSSION;
+    engine.currentPlayerIndex = -1;
+    engine.voteResult = emptyVoteResult();
+    delete engine.preVotingResultSnapshot;
+    resetSingleVoteEffects(engine);
+    resetVotes(engine);
+    appendLog(
+        engine,
+        `Раунд ${engine.round} продолжается: подготовка к голосованию ${nextVoteNumber} из ${voteTarget}.`
+    );
+}
+
+function completeCurrentRound(engine) {
+    const completedRound = Number(engine.round ?? 1);
+    const returnedIds = applySecondChances(engine);
+    const activeIds = activePlayerIds(engine);
+    if (returnedIds.length) {
+        appendLog(engine, "Игроки со «Вторым шансом» возвращаются в следующем раунде.");
+    }
+
+    reconcileVotingPlan(engine, completedRound + 1);
+    if (completedRound >= engine.totalRounds) {
+        if (activeIds.length <= engine.capacity) {
+            finishGame(engine, activeIds);
+            return;
+        }
+        engine.totalRounds = completedRound + 1;
+        engine.voteSchedule[engine.totalRounds] = Math.max(
+            Number(engine.voteSchedule?.[engine.totalRounds] ?? 0),
+            activeIds.length - engine.capacity
+        );
+    }
+
+    if (activeIds.length <= engine.capacity) {
+        appendLog(engine, "Состав бункера уже определён. Следующий раунд пройдёт без голосования.");
+    }
     beginNextRound(engine, activeIds);
 }
 
@@ -831,6 +899,7 @@ function finishGame(engine, activeIds = activePlayerIds(engine)) {
     engine.currentPlayerIndex = -1;
     const bunkerOutcome = resolveFinalBunkerEffects(engine, activeIds);
     const finalistIds = activePlayerIds(engine);
+    revealAllPlayersTraits(engine);
     if (engine.threat?.status === "hidden") {
         const secret = engine.scenarioSecrets?.threat;
         if (secret) {
@@ -1156,6 +1225,7 @@ function resolveThreat(engine, command, hostId) {
 
     engine.threatResolution.status = outcome;
     engine.threatResolution.resolvedAt = Date.now();
+    revealAllPlayersTraits(engine);
     engine.phase = PHASES.FINISHED;
     const names = engine.threatResolution.finalistIds
         .map((id) => engine.players[id]?.name)
@@ -1179,6 +1249,7 @@ function resolveNonlethalThreatFailure(engine) {
     engine.threatResolution.nonlethalFailure = true;
     engine.threatResolution.lethalThreatsResolved = lethalThreatsResolved;
     engine.threatResolution.resolvedAt = Date.now();
+    revealAllPlayersTraits(engine);
     engine.phase = PHASES.FINISHED;
     const names = engine.threatResolution.finalistIds
         .map((id) => engine.players[id]?.name)
@@ -1666,17 +1737,13 @@ function hostEdit(engine, command, hostId) {
             throw new Error("Некорректное количество мест в бункере.");
         }
         engine.capacity = capacity;
-        engine.totalRounds = Math.max(
-            MINIMUM_GAME_ROUNDS,
-            engine.round,
-            requiredTotalRoundsForCapacity(engine, capacity)
-        );
         const voteIsStillOpen = engine.phase === PHASES.VOTING
             || (engine.phase === PHASES.RESULTS && engine.voteResult?.status === "tie");
         if (voteIsStillOpen && activePlayerIds(engine).length <= capacity) {
             engine.phase = PHASES.DISCUSSION;
             engine.currentPlayerIndex = -1;
             engine.voteResult = emptyVoteResult();
+            resetSingleVoteEffects(engine);
             resetVotes(engine);
             delete engine.preVotingResultSnapshot;
             appendLog(engine, "Голосование отменено: после изменения вместимости мест хватает всем активным игрокам.");
@@ -1915,6 +1982,8 @@ function playSpecial(engine, command) {
         requireTarget();
         engine.roundEffects ??= {};
         engine.roundEffects.doubleAgainstTarget = targetId;
+        engine.roundEffects.voteDisabledPlayers ??= {};
+        engine.roundEffects.voteDisabledPlayers[playerId] = true;
         player.voteDisabled = true;
     } else if (specialId === 24) {
         if (player.status !== "exiled") throw new Error("Эту карту можно сыграть только после изгнания.");
@@ -1947,6 +2016,7 @@ function playSpecial(engine, command) {
             engine.roundEffects.previousVoteTargets = { ...engine.votes };
             engine.phase = PHASES.VOTING;
             engine.voteResult = emptyVoteResult();
+            advanceVoteCycle(engine);
             resetVotes(engine);
             const restoredPlayer = engine.players[playerId];
             restoredPlayer.revealedTraits.special = engine.characters[playerId].special;
@@ -1965,6 +2035,7 @@ function playSpecial(engine, command) {
         engine.roundEffects ??= {};
         engine.roundEffects.previousVoteTargets = { ...engine.votes };
         engine.voteResult = emptyVoteResult();
+        advanceVoteCycle(engine);
         resetVotes(engine);
     } else if (specialId === 29) {
         const professionTarget = requireTarget();
@@ -1976,11 +2047,6 @@ function playSpecial(engine, command) {
         if (player.status !== "exiled") throw new Error("Эту карту можно сыграть только после изгнания.");
         if (engine.capacity <= 1) throw new Error("Вместимость бункера уже нельзя уменьшить.");
         engine.capacity = Math.max(1, engine.capacity - 1);
-        engine.totalRounds = Math.max(
-            MINIMUM_GAME_ROUNDS,
-            engine.totalRounds,
-            requiredTotalRoundsForCapacity(engine)
-        );
         appendLog(engine, `После последней диверсии вместимость бункера уменьшена до ${engine.capacity}.`);
     } else if (specialId >= 31 && specialId <= 36) {
         const ownTrait = specialId === 31 ? trait : ({ 32: "biology", 33: "hobby", 34: "baggage", 35: "fact", 36: "profession" })[specialId];
@@ -2265,7 +2331,9 @@ function applyAgeVoteMultiplier(engine, choice) {
     for (const id of activePlayerIds(engine)) {
         const text = engine.players[id].revealedTraits?.biology;
         const age = Number(text?.match(/\d+/)?.[0]);
-        if (Number.isFinite(age) && (choice === "younger" ? age < 33 : age > 33)) engine.players[id].voteMultiplier = 2;
+        if (Number.isFinite(age) && (choice === "younger" ? age < 33 : age > 33)) {
+            setRoundVoteMultiplier(engine, id);
+        }
     }
 }
 
@@ -2274,9 +2342,16 @@ function applyGenderVoteMultiplier(engine, choice) {
     for (const id of activePlayerIds(engine)) {
         const text = String(engine.players[id].revealedTraits?.biology ?? "").toLowerCase();
         if ((choice === "female" && text.includes("женщ")) || (choice === "male" && text.includes("мужч"))) {
-            engine.players[id].voteMultiplier = 2;
+            setRoundVoteMultiplier(engine, id);
         }
     }
+}
+
+function setRoundVoteMultiplier(engine, playerId) {
+    engine.roundEffects ??= {};
+    engine.roundEffects.voteMultiplierPlayers ??= {};
+    engine.roundEffects.voteMultiplierPlayers[playerId] = true;
+    engine.players[playerId].voteMultiplier = 2;
 }
 
 function applyNeighborVoteMultiplier(engine, playerId, choice) {
@@ -2292,6 +2367,7 @@ function applyNeighborVoteMultiplier(engine, playerId, choice) {
 
 const SPECIAL_SNAPSHOT_KEYS = [
     "capacity", "totalRounds", "phase", "round", "currentPlayerIndex", "randomState", "players",
+    "initialPlayerCount", "voteSchedule", "completedVotesByRound", "voteCycle",
     "characters", "votes", "voteResult", "roundEffects", "bunker", "threat", "threatResolution",
     "catastrophe", "extraScenarios", "bunkerRoundsRevealed", "firstReveal", "sharedSecrets",
     "lastExiledPlayerId", "bunkerCardSequence", "extraScenarioSequence", "bunkerEffectResults",
@@ -2308,8 +2384,13 @@ function captureSpecialSnapshot(engine) {
 }
 
 function restoreSpecialSnapshot(engine, snapshot) {
+    const currentVoteCycle = Math.max(0, Math.trunc(Number(engine.voteCycle) || 0));
     for (const key of SPECIAL_SNAPSHOT_KEYS) delete engine[key];
     for (const [key, value] of Object.entries(snapshot)) engine[key] = structuredClone(value);
+    engine.voteCycle = Math.max(
+        currentVoteCycle,
+        Math.max(0, Math.trunc(Number(engine.voteCycle) || 0))
+    );
 }
 
 function cancelLastSpecial(engine, cancellerId) {
@@ -2716,6 +2797,22 @@ function revealAllTraits(engine, playerId) {
     }
 }
 
+function revealAllPlayersTraits(engine) {
+    let revealedSomething = false;
+    for (const playerId of engine.order ?? []) {
+        const player = engine.players?.[playerId];
+        const character = engine.characters?.[playerId];
+        if (!player || !character) continue;
+        if (TRAIT_KEYS.some((trait) => player.revealedTraits?.[trait] !== character[trait])) {
+            revealedSomething = true;
+        }
+        revealAllTraits(engine, playerId);
+    }
+    if (revealedSomething) {
+        appendLog(engine, "Финал: раскрыты все карты всех участников.");
+    }
+}
+
 function restorePreExileTraits(engine, playerId) {
     const player = engine.players[playerId];
     if (!player || !Array.isArray(player.revealedBeforeExile)) return;
@@ -2813,24 +2910,137 @@ function repairCurrentTurn(engine) {
     }
 }
 
-function activePlayerIds(engine) {
-    return engine.order.filter((id) => engine.players[id]?.status === "active");
+function ensureVotingPlan(engine) {
+    const playerCount = Math.max(0, Math.trunc(Number(engine.initialPlayerCount ?? engine.order?.length) || 0));
+    const currentRound = Math.max(1, Math.trunc(Number(engine.round) || 1));
+    const hasVoteScheduleData = engine.voteSchedule
+        && typeof engine.voteSchedule === "object"
+        && !Array.isArray(engine.voteSchedule);
+    const hasCompletedVoteData = engine.completedVotesByRound
+        && typeof engine.completedVotesByRound === "object"
+        && !Array.isArray(engine.completedVotesByRound);
+    const hasVotingPlan = hasVoteScheduleData && hasCompletedVoteData;
+    const totalRounds = Math.max(
+        MINIMUM_GAME_ROUNDS,
+        currentRound,
+        hasVotingPlan ? Math.trunc(Number(engine.totalRounds) || 0) : 0
+    );
+
+    engine.initialPlayerCount = playerCount;
+    engine.totalRounds = totalRounds;
+    engine.voteCycle = Math.max(0, Math.trunc(Number(engine.voteCycle) || 0));
+    if (!hasVoteScheduleData) {
+        engine.voteSchedule = getRoundVoteSchedule(playerCount, engine.capacity);
+    }
+    for (let round = 1; round <= totalRounds; round += 1) {
+        const target = Number(engine.voteSchedule[round]);
+        engine.voteSchedule[round] = Number.isFinite(target)
+            ? Math.max(0, Math.trunc(target))
+            : 0;
+    }
+
+    if (!hasCompletedVoteData) {
+        engine.completedVotesByRound = {};
+        for (let round = 1; round < currentRound; round += 1) {
+            engine.completedVotesByRound[round] = Number(engine.voteSchedule[round] ?? 0);
+        }
+        if (engine.phase === PHASES.RESULTS && engine.voteResult?.status === "exiled") {
+            engine.voteSchedule[currentRound] = Math.max(1, Number(engine.voteSchedule[currentRound] ?? 0));
+            engine.completedVotesByRound[currentRound] = 1;
+        } else if (
+            engine.phase === PHASES.VOTING
+            || (engine.phase === PHASES.RESULTS && engine.voteResult?.status === "tie")
+        ) {
+            engine.voteSchedule[currentRound] = Math.max(1, Number(engine.voteSchedule[currentRound] ?? 0));
+        }
+    }
 }
 
-function requiredTotalRoundsForCapacity(engine, capacity = engine.capacity) {
+function roundVoteTarget(engine, round = engine.round) {
+    return Math.max(0, Math.trunc(Number(engine.voteSchedule?.[round]) || 0));
+}
+
+function completedRoundVotes(engine, round = engine.round) {
+    return Math.max(0, Math.trunc(Number(engine.completedVotesByRound?.[round]) || 0));
+}
+
+function remainingRoundVotes(engine, round = engine.round) {
+    return Math.max(0, roundVoteTarget(engine, round) - completedRoundVotes(engine, round));
+}
+
+function markRoundVoteCompleted(engine) {
     const round = Math.max(1, Number(engine.round ?? 1));
-    const remainingExiles = Math.max(0, activePlayerIds(engine).length - Number(capacity ?? 0));
-    const currentVoteStillPending =
-        round >= 2
-        && remainingExiles > 0
+    const completed = completedRoundVotes(engine, round) + 1;
+    engine.completedVotesByRound ??= {};
+    engine.voteSchedule ??= {};
+    engine.completedVotesByRound[round] = completed;
+    engine.voteSchedule[round] = Math.max(roundVoteTarget(engine, round), completed);
+}
+
+function reconcileVotingPlan(engine, startRound = engine.round) {
+    ensureVotingPlan(engine);
+    const currentRound = Math.max(1, Number(engine.round ?? 1));
+    const firstRound = Math.max(1, Math.trunc(Number(startRound) || currentRound));
+    const activeCount = activePlayerIds(engine).length;
+    const neededVotes = Math.max(0, activeCount - Number(engine.capacity ?? 0));
+
+    if (firstRound > engine.totalRounds && neededVotes > 0) {
+        engine.totalRounds = firstRound;
+        engine.voteSchedule[firstRound] = Number(engine.voteSchedule[firstRound] ?? 0);
+    }
+
+    let plannedVotes = 0;
+    for (let round = firstRound; round <= engine.totalRounds; round += 1) {
+        plannedVotes += remainingRoundVotes(engine, round);
+    }
+
+    if (plannedVotes < neededVotes) {
+        const targetRound = Math.max(firstRound, engine.totalRounds);
+        engine.totalRounds = Math.max(engine.totalRounds, targetRound);
+        engine.voteSchedule[targetRound] = roundVoteTarget(engine, targetRound) + neededVotes - plannedVotes;
+        return;
+    }
+
+    let excessVotes = plannedVotes - neededVotes;
+    const preserveCurrentVote = firstRound <= currentRound
+        && activeCount > Number(engine.capacity ?? 0)
         && (
-            [PHASES.REVEAL, PHASES.DISCUSSION, PHASES.VOTING].includes(engine.phase)
-            || (
-                engine.phase === PHASES.RESULTS
-                && engine.voteResult?.status === "tie"
-            )
+            engine.phase === PHASES.VOTING
+            || (engine.phase === PHASES.RESULTS && engine.voteResult?.status === "tie")
         );
-    return round + remainingExiles - (currentVoteStillPending ? 1 : 0);
+    for (let round = engine.totalRounds; round >= firstRound && excessVotes > 0; round -= 1) {
+        const completed = completedRoundVotes(engine, round);
+        const minimum = round === currentRound && preserveCurrentVote
+            ? completed + 1
+            : completed;
+        const removable = Math.max(0, roundVoteTarget(engine, round) - minimum);
+        const removed = Math.min(removable, excessVotes);
+        engine.voteSchedule[round] = roundVoteTarget(engine, round) - removed;
+        excessVotes -= removed;
+    }
+}
+
+function resetSingleVoteEffects(engine) {
+    engine.roundEffects ??= {};
+    const roundMultipliers = engine.roundEffects.voteMultiplierPlayers ?? {};
+    const roundDisabled = engine.roundEffects.voteDisabledPlayers ?? {};
+    delete engine.roundEffects.discreditOwners;
+    delete engine.roundEffects.previousVoteTargets;
+    for (const id of engine.order) {
+        const player = engine.players[id];
+        if (!player) continue;
+        player.voteMultiplier = roundMultipliers[id] ? 2 : 1;
+        player.voteDisabled = Boolean(roundDisabled[id]);
+        player.ignoreVotesIfHalf = false;
+        player.ignoreVotesIfEven = false;
+        player.selfPenaltyAgainst = false;
+        player.loneVoteTriple = false;
+        player.votersGetHealth = false;
+    }
+}
+
+function activePlayerIds(engine) {
+    return engine.order.filter((id) => engine.players[id]?.status === "active");
 }
 
 function revealedOrdinaryTraitCount(player) {
@@ -2867,6 +3077,11 @@ function resetVotes(engine) {
         engine.players[id].voteSubmitted = false;
         engine.votes[id] = "";
     }
+}
+
+function advanceVoteCycle(engine) {
+    engine.voteCycle = Math.max(0, Math.trunc(Number(engine.voteCycle) || 0)) + 1;
+    return engine.voteCycle;
 }
 
 function createHiddenTraits() {

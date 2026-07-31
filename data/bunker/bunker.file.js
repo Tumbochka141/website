@@ -1986,6 +1986,23 @@
   var REACTION_SPECIAL_IDS = /* @__PURE__ */ new Set([50, 71]);
   var SECRET_SPECIAL_IDS = /* @__PURE__ */ new Set([10, 13, 14, 15, 19]);
   var INTERACTIVE_BUNKER_CARD_IDS = /* @__PURE__ */ new Set([1, 4, 44, 51, 52, 53, 59, 62, 75]);
+  function getOfficialBunkerCapacity(playerCount) {
+    const count = Math.max(0, Math.trunc(Number(playerCount) || 0));
+    return Math.floor(count / 2);
+  }
+  function getRoundVoteSchedule(playerCount, capacity = getOfficialBunkerCapacity(playerCount)) {
+    const count = Math.max(0, Math.trunc(Number(playerCount) || 0));
+    const safeCapacity = Math.max(0, Math.min(count, Math.trunc(Number(capacity) || 0)));
+    const exileCount = Math.max(0, count - safeCapacity);
+    const baseVotes = Math.floor(exileCount / 4);
+    const extraVotes = exileCount % 4;
+    const schedule = { 1: 0 };
+    for (let index = 0; index < 4; index += 1) {
+      const round = index + 2;
+      schedule[round] = baseVotes + (index >= 4 - extraVotes ? 1 : 0);
+    }
+    return schedule;
+  }
   function getSpecialAvailability(state, playerId, specialId) {
     const id = Number(specialId ?? 0);
     const player = state?.players?.[playerId];
@@ -2012,7 +2029,14 @@
       return { allowed: false, reason: "\u041F\u043E\u0441\u043B\u0435 \u0438\u0437\u0433\u043D\u0430\u043D\u0438\u044F \u043C\u043E\u0436\u043D\u043E \u0440\u0430\u0437\u044B\u0433\u0440\u044B\u0432\u0430\u0442\u044C \u0442\u043E\u043B\u044C\u043A\u043E \u043A\u0430\u0440\u0442\u044B \u0441 \u0442\u0430\u043A\u0438\u043C \u0443\u0441\u043B\u043E\u0432\u0438\u0435\u043C." };
     }
     const activeCount = Object.values(state.players ?? {}).filter((item) => item.status === "active").length;
-    const hasUpcomingVote = Number(state.round ?? 0) >= 2 && activeCount > Number(state.capacity ?? 0);
+    const round = Number(state.round ?? 0);
+    const roundVoteTarget2 = Number(
+      state.roundVoteTarget ?? state.voteSchedule?.[round] ?? (round >= 2 ? 1 : 0)
+    );
+    const roundVotesCompleted = Number(
+      state.roundVotesCompleted ?? state.completedVotesByRound?.[round] ?? 0
+    );
+    const hasUpcomingVote = activeCount > Number(state.capacity ?? 0) && (state.phase === PHASES.VOTING || state.phase === PHASES.RESULTS && state.voteResult?.status === "tie" || roundVoteTarget2 > roundVotesCompleted);
     if (BEFORE_VOTING_SPECIAL_IDS.has(id)) {
       if (!hasUpcomingVote) {
         return { allowed: false, reason: "\u042D\u0442\u0430 \u043A\u0430\u0440\u0442\u0430 \u043F\u0440\u0438\u043C\u0435\u043D\u044F\u0435\u0442\u0441\u044F \u043F\u0435\u0440\u0435\u0434 \u0433\u043E\u043B\u043E\u0441\u043E\u0432\u0430\u043D\u0438\u0435\u043C, \u0430 \u0433\u043E\u043B\u043E\u0441\u043E\u0432\u0430\u043D\u0438\u0435 \u0441\u0435\u0439\u0447\u0430\u0441 \u043D\u0435 \u043E\u0436\u0438\u0434\u0430\u0435\u0442\u0441\u044F." };
@@ -2090,8 +2114,12 @@
       randomState: randomState || 1,
       phase: PHASES.REVEAL,
       round: 1,
-      totalRounds: Math.max(MINIMUM_GAME_ROUNDS, players.length - capacity + 1),
+      totalRounds: MINIMUM_GAME_ROUNDS,
       capacity,
+      initialPlayerCount: players.length,
+      voteSchedule: getRoundVoteSchedule(players.length, capacity),
+      completedVotesByRound: {},
+      voteCycle: 0,
       order,
       currentPlayerIndex: 0,
       players: playerStates,
@@ -2124,6 +2152,7 @@
   }
   function applyCommand(engine, command, hostId) {
     const requiresExactRevision = [
+      "NEXT_PHASE",
       "PLAY_SPECIAL",
       "RESPOND_SECRET_SHARE",
       "CANCEL_PENDING"
@@ -2131,6 +2160,8 @@
     if (requiresExactRevision && command?.revision !== void 0 && Number(command.revision) !== Number(engine.revision)) {
       throw new Error("\u041A\u043E\u043C\u0430\u043D\u0434\u0430 \u0443\u0441\u0442\u0430\u0440\u0435\u043B\u0430: \u0441\u043E\u0441\u0442\u043E\u044F\u043D\u0438\u0435 \u043F\u0430\u0440\u0442\u0438\u0438 \u0443\u0436\u0435 \u0438\u0437\u043C\u0435\u043D\u0438\u043B\u043E\u0441\u044C.");
     }
+    ensureVotingPlan(engine);
+    reconcileVotingPlan(engine);
     const introducedBunkerVote = migrateScenarioMetadata(engine);
     const isHostPendingSpecialCancel = command.type === "CANCEL_PENDING" && command.from === hostId;
     const isPendingSecretReaction = command.type === "PLAY_SPECIAL" && REACTION_SPECIAL_IDS.has(Number(engine.characters?.[command.from]?.specialId ?? 0));
@@ -2190,6 +2221,7 @@
       default:
         return false;
     }
+    reconcileVotingPlan(engine);
     ensureBunkerCardsForCurrentRound(engine);
     engine.revision += 1;
     return true;
@@ -2209,6 +2241,11 @@
       round: engine.round,
       totalRounds: engine.totalRounds,
       capacity: engine.capacity,
+      initialPlayerCount: Number(engine.initialPlayerCount ?? engine.order?.length ?? 0),
+      voteSchedule: { ...engine.voteSchedule ?? {} },
+      roundVoteTarget: roundVoteTarget(engine),
+      roundVotesCompleted: completedRoundVotes(engine),
+      voteCycle: Number(engine.voteCycle ?? 0),
       order: engine.order,
       currentPlayerIndex: engine.currentPlayerIndex,
       requiredTrait: engine.roundEffects?.forcedTrait ?? "",
@@ -2396,6 +2433,9 @@
     const targetId = command.data?.targetId;
     const voter = engine.players?.[voterId];
     const target = engine.players?.[targetId];
+    if (command.data?.voteCycle !== void 0 && Number(command.data.voteCycle) !== Number(engine.voteCycle ?? 0)) {
+      throw new Error("\u0413\u043E\u043B\u043E\u0441\u043E\u0432\u0430\u043D\u0438\u0435 \u0443\u0436\u0435 \u0441\u043C\u0435\u043D\u0438\u043B\u043E\u0441\u044C. \u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u043A\u0430\u043D\u0434\u0438\u0434\u0430\u0442\u0430 \u0437\u0430\u043D\u043E\u0432\u043E.");
+    }
     if (engine.phase !== PHASES.VOTING) throw new Error("\u0421\u0435\u0439\u0447\u0430\u0441 \u0433\u043E\u043B\u043E\u0441\u043E\u0432\u0430\u043D\u0438\u0435 \u043D\u0435 \u043F\u0440\u043E\u0432\u043E\u0434\u0438\u0442\u0441\u044F.");
     if (!voter || !votingPlayerIds(engine).includes(voterId)) throw new Error("\u0412\u044B \u043D\u0435 \u0443\u0447\u0430\u0441\u0442\u0432\u0443\u0435\u0442\u0435 \u0432 \u0433\u043E\u043B\u043E\u0441\u043E\u0432\u0430\u043D\u0438\u0438.");
     if (!target || target.status !== "active") throw new Error("\u041D\u0435\u043B\u044C\u0437\u044F \u0433\u043E\u043B\u043E\u0441\u043E\u0432\u0430\u0442\u044C \u0437\u0430 \u044D\u0442\u043E\u0433\u043E \u0438\u0433\u0440\u043E\u043A\u0430.");
@@ -2420,47 +2460,12 @@
       throw new Error("\u0421\u043D\u0430\u0447\u0430\u043B\u0430 \u0437\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u0435 \u043E\u0436\u0438\u0434\u0430\u044E\u0449\u0435\u0435 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435 \u043E\u0441\u043E\u0431\u043E\u0439 \u043A\u0430\u0440\u0442\u044B.");
     }
     if (engine.phase === PHASES.DISCUSSION) {
-      let activeIds2 = activePlayerIds(engine);
-      if (activeIds2.length <= engine.capacity) {
-        const returnedIds = applySecondChances(engine);
-        activeIds2 = activePlayerIds(engine);
-        if (returnedIds.length) {
-          engine.totalRounds = Math.max(
-            MINIMUM_GAME_ROUNDS,
-            engine.totalRounds,
-            engine.round + Math.max(1, activeIds2.length - engine.capacity)
-          );
-          appendLog(engine, "\u0418\u0433\u0440\u043E\u043A\u0438 \u0441\u043E \xAB\u0412\u0442\u043E\u0440\u044B\u043C \u0448\u0430\u043D\u0441\u043E\u043C\xBB \u0432\u043E\u0437\u0432\u0440\u0430\u0449\u0430\u044E\u0442\u0441\u044F \u0432 \u0441\u043B\u0435\u0434\u0443\u044E\u0449\u0435\u043C \u0440\u0430\u0443\u043D\u0434\u0435.");
-          beginNextRound(engine, activeIds2);
-          return;
-        }
-        if (engine.round >= engine.totalRounds) {
-          finishGame(engine, activeIds2);
-        } else {
-          appendLog(engine, "\u0421\u043E\u0441\u0442\u0430\u0432 \u0431\u0443\u043D\u043A\u0435\u0440\u0430 \u0443\u0436\u0435 \u043E\u043F\u0440\u0435\u0434\u0435\u043B\u0451\u043D. \u0421\u043B\u0435\u0434\u0443\u044E\u0449\u0438\u0439 \u0440\u0430\u0443\u043D\u0434 \u043F\u0440\u043E\u0439\u0434\u0451\u0442 \u0431\u0435\u0437 \u0433\u043E\u043B\u043E\u0441\u043E\u0432\u0430\u043D\u0438\u044F.");
-          beginNextRound(engine, activeIds2);
-        }
+      const activeIds2 = activePlayerIds(engine);
+      if (activeIds2.length > engine.capacity && remainingRoundVotes(engine) > 0) {
+        openVoting(engine);
         return;
       }
-      if (engine.round === 1) {
-        const returnedIds = applySecondChances(engine);
-        const nextActiveIds = activePlayerIds(engine);
-        if (returnedIds.length) {
-          engine.totalRounds = Math.max(
-            MINIMUM_GAME_ROUNDS,
-            engine.totalRounds,
-            engine.round + Math.max(1, nextActiveIds.length - engine.capacity)
-          );
-          appendLog(engine, "\u0418\u0433\u0440\u043E\u043A\u0438 \u0441\u043E \xAB\u0412\u0442\u043E\u0440\u044B\u043C \u0448\u0430\u043D\u0441\u043E\u043C\xBB \u0432\u043E\u0437\u0432\u0440\u0430\u0449\u0430\u044E\u0442\u0441\u044F \u0432 \u0441\u043B\u0435\u0434\u0443\u044E\u0449\u0435\u043C \u0440\u0430\u0443\u043D\u0434\u0435.");
-        }
-        beginNextRound(engine, nextActiveIds);
-        return;
-      }
-      engine.phase = PHASES.VOTING;
-      engine.currentPlayerIndex = -1;
-      engine.voteResult = emptyVoteResult();
-      resetVotes(engine);
-      appendLog(engine, "\u0412\u0435\u0434\u0443\u0449\u0438\u0439 \u043E\u0442\u043A\u0440\u044B\u043B \u0433\u043E\u043B\u043E\u0441\u043E\u0432\u0430\u043D\u0438\u0435.");
+      completeCurrentRound(engine);
       return;
     }
     if (engine.phase === PHASES.VOTING) {
@@ -2542,6 +2547,7 @@
       if (!exilePlayer(engine, exiledPlayerId)) {
         throw new Error("\u0412\u044B\u0431\u0440\u0430\u043D\u043D\u043E\u0433\u043E \u0438\u0433\u0440\u043E\u043A\u0430 \u043D\u0435\u043B\u044C\u0437\u044F \u0438\u0437\u0433\u043D\u0430\u0442\u044C.");
       }
+      markRoundVoteCompleted(engine);
       engine.voteResult = { status: "exiled", exiledPlayerId, candidates: leaders, counts };
       appendLog(engine, `${engine.players[exiledPlayerId].name} \u0438\u0437\u0433\u043D\u0430\u043D \u0438\u0437 \u0433\u0440\u0443\u043F\u043F\u044B.`);
     } else {
@@ -2554,27 +2560,67 @@
     if (engine.voteResult.status === "tie") {
       engine.phase = PHASES.VOTING;
       engine.currentPlayerIndex = -1;
+      advanceVoteCycle(engine);
       resetVotes(engine);
       appendLog(engine, "\u041D\u0430\u0447\u0430\u043B\u043E\u0441\u044C \u043F\u0435\u0440\u0435\u0433\u043E\u043B\u043E\u0441\u043E\u0432\u0430\u043D\u0438\u0435 \u043C\u0435\u0436\u0434\u0443 \u043B\u0438\u0434\u0435\u0440\u0430\u043C\u0438.");
       return;
     }
     if (engine.voteResult.status !== "exiled") throw new Error("\u0420\u0435\u0437\u0443\u043B\u044C\u0442\u0430\u0442 \u0433\u043E\u043B\u043E\u0441\u043E\u0432\u0430\u043D\u0438\u044F \u0435\u0449\u0451 \u043D\u0435 \u0433\u043E\u0442\u043E\u0432.");
+    const activeIds2 = activePlayerIds(engine);
+    if (activeIds2.length > engine.capacity && remainingRoundVotes(engine) > 0) {
+      prepareNextVoteInRound(engine);
+      return;
+    }
+    completeCurrentRound(engine);
+  }
+  function openVoting(engine) {
+    const voteNumber = completedRoundVotes(engine) + 1;
+    const voteTarget = roundVoteTarget(engine);
+    engine.phase = PHASES.VOTING;
+    engine.currentPlayerIndex = -1;
+    engine.voteResult = emptyVoteResult();
+    advanceVoteCycle(engine);
+    resetVotes(engine);
+    appendLog(
+      engine,
+      voteTarget > 1 ? `\u0412\u0435\u0434\u0443\u0449\u0438\u0439 \u043E\u0442\u043A\u0440\u044B\u043B \u0433\u043E\u043B\u043E\u0441\u043E\u0432\u0430\u043D\u0438\u0435 ${voteNumber} \u0438\u0437 ${voteTarget} \u0432 \u0440\u0430\u0443\u043D\u0434\u0435 ${engine.round}.` : "\u0412\u0435\u0434\u0443\u0449\u0438\u0439 \u043E\u0442\u043A\u0440\u044B\u043B \u0433\u043E\u043B\u043E\u0441\u043E\u0432\u0430\u043D\u0438\u0435."
+    );
+  }
+  function prepareNextVoteInRound(engine) {
+    const nextVoteNumber = completedRoundVotes(engine) + 1;
+    const voteTarget = roundVoteTarget(engine);
+    engine.phase = PHASES.DISCUSSION;
+    engine.currentPlayerIndex = -1;
+    engine.voteResult = emptyVoteResult();
+    delete engine.preVotingResultSnapshot;
+    resetSingleVoteEffects(engine);
+    resetVotes(engine);
+    appendLog(
+      engine,
+      `\u0420\u0430\u0443\u043D\u0434 ${engine.round} \u043F\u0440\u043E\u0434\u043E\u043B\u0436\u0430\u0435\u0442\u0441\u044F: \u043F\u043E\u0434\u0433\u043E\u0442\u043E\u0432\u043A\u0430 \u043A \u0433\u043E\u043B\u043E\u0441\u043E\u0432\u0430\u043D\u0438\u044E ${nextVoteNumber} \u0438\u0437 ${voteTarget}.`
+    );
+  }
+  function completeCurrentRound(engine) {
+    const completedRound = Number(engine.round ?? 1);
     const returnedIds = applySecondChances(engine);
     const activeIds2 = activePlayerIds(engine);
-    engine.totalRounds = Math.max(
-      MINIMUM_GAME_ROUNDS,
-      engine.totalRounds,
-      returnedIds.length ? engine.round + 1 : engine.round,
-      requiredTotalRoundsForCapacity(engine)
-    );
-    if (activeIds2.length <= engine.capacity) {
-      if (engine.round >= engine.totalRounds) {
+    if (returnedIds.length) {
+      appendLog(engine, "\u0418\u0433\u0440\u043E\u043A\u0438 \u0441\u043E \xAB\u0412\u0442\u043E\u0440\u044B\u043C \u0448\u0430\u043D\u0441\u043E\u043C\xBB \u0432\u043E\u0437\u0432\u0440\u0430\u0449\u0430\u044E\u0442\u0441\u044F \u0432 \u0441\u043B\u0435\u0434\u0443\u044E\u0449\u0435\u043C \u0440\u0430\u0443\u043D\u0434\u0435.");
+    }
+    reconcileVotingPlan(engine, completedRound + 1);
+    if (completedRound >= engine.totalRounds) {
+      if (activeIds2.length <= engine.capacity) {
         finishGame(engine, activeIds2);
-      } else {
-        appendLog(engine, "\u0421\u043E\u0441\u0442\u0430\u0432 \u0431\u0443\u043D\u043A\u0435\u0440\u0430 \u043E\u043F\u0440\u0435\u0434\u0435\u043B\u0451\u043D \u0434\u043E\u0441\u0440\u043E\u0447\u043D\u043E. \u041E\u0441\u0442\u0430\u0432\u0448\u0438\u0435\u0441\u044F \u0440\u0430\u0443\u043D\u0434\u044B \u043F\u0440\u043E\u0439\u0434\u0443\u0442 \u0431\u0435\u0437 \u0433\u043E\u043B\u043E\u0441\u043E\u0432\u0430\u043D\u0438\u044F.");
-        beginNextRound(engine, activeIds2);
+        return;
       }
-      return;
+      engine.totalRounds = completedRound + 1;
+      engine.voteSchedule[engine.totalRounds] = Math.max(
+        Number(engine.voteSchedule?.[engine.totalRounds] ?? 0),
+        activeIds2.length - engine.capacity
+      );
+    }
+    if (activeIds2.length <= engine.capacity) {
+      appendLog(engine, "\u0421\u043E\u0441\u0442\u0430\u0432 \u0431\u0443\u043D\u043A\u0435\u0440\u0430 \u0443\u0436\u0435 \u043E\u043F\u0440\u0435\u0434\u0435\u043B\u0451\u043D. \u0421\u043B\u0435\u0434\u0443\u044E\u0449\u0438\u0439 \u0440\u0430\u0443\u043D\u0434 \u043F\u0440\u043E\u0439\u0434\u0451\u0442 \u0431\u0435\u0437 \u0433\u043E\u043B\u043E\u0441\u043E\u0432\u0430\u043D\u0438\u044F.");
     }
     beginNextRound(engine, activeIds2);
   }
@@ -2630,6 +2676,7 @@
     engine.currentPlayerIndex = -1;
     const bunkerOutcome = resolveFinalBunkerEffects(engine, activeIds2);
     const finalistIds = activePlayerIds(engine);
+    revealAllPlayersTraits(engine);
     if (engine.threat?.status === "hidden") {
       const secret = engine.scenarioSecrets?.threat;
       if (secret) {
@@ -2888,6 +2935,7 @@
     }
     engine.threatResolution.status = outcome;
     engine.threatResolution.resolvedAt = Date.now();
+    revealAllPlayersTraits(engine);
     engine.phase = PHASES.FINISHED;
     const names = engine.threatResolution.finalistIds.map((id) => engine.players[id]?.name).filter(Boolean).join(", ");
     appendLog(
@@ -2905,6 +2953,7 @@
     engine.threatResolution.nonlethalFailure = true;
     engine.threatResolution.lethalThreatsResolved = lethalThreatsResolved;
     engine.threatResolution.resolvedAt = Date.now();
+    revealAllPlayersTraits(engine);
     engine.phase = PHASES.FINISHED;
     const names = engine.threatResolution.finalistIds.map((id) => engine.players[id]?.name).filter(Boolean).join(", ");
     appendLog(
@@ -3308,16 +3357,12 @@
         throw new Error("\u041D\u0435\u043A\u043E\u0440\u0440\u0435\u043A\u0442\u043D\u043E\u0435 \u043A\u043E\u043B\u0438\u0447\u0435\u0441\u0442\u0432\u043E \u043C\u0435\u0441\u0442 \u0432 \u0431\u0443\u043D\u043A\u0435\u0440\u0435.");
       }
       engine.capacity = capacity;
-      engine.totalRounds = Math.max(
-        MINIMUM_GAME_ROUNDS,
-        engine.round,
-        requiredTotalRoundsForCapacity(engine, capacity)
-      );
       const voteIsStillOpen = engine.phase === PHASES.VOTING || engine.phase === PHASES.RESULTS && engine.voteResult?.status === "tie";
       if (voteIsStillOpen && activePlayerIds(engine).length <= capacity) {
         engine.phase = PHASES.DISCUSSION;
         engine.currentPlayerIndex = -1;
         engine.voteResult = emptyVoteResult();
+        resetSingleVoteEffects(engine);
         resetVotes(engine);
         delete engine.preVotingResultSnapshot;
         appendLog(engine, "\u0413\u043E\u043B\u043E\u0441\u043E\u0432\u0430\u043D\u0438\u0435 \u043E\u0442\u043C\u0435\u043D\u0435\u043D\u043E: \u043F\u043E\u0441\u043B\u0435 \u0438\u0437\u043C\u0435\u043D\u0435\u043D\u0438\u044F \u0432\u043C\u0435\u0441\u0442\u0438\u043C\u043E\u0441\u0442\u0438 \u043C\u0435\u0441\u0442 \u0445\u0432\u0430\u0442\u0430\u0435\u0442 \u0432\u0441\u0435\u043C \u0430\u043A\u0442\u0438\u0432\u043D\u044B\u043C \u0438\u0433\u0440\u043E\u043A\u0430\u043C.");
@@ -3534,6 +3579,8 @@
       requireTarget();
       engine.roundEffects ??= {};
       engine.roundEffects.doubleAgainstTarget = targetId;
+      engine.roundEffects.voteDisabledPlayers ??= {};
+      engine.roundEffects.voteDisabledPlayers[playerId] = true;
       player.voteDisabled = true;
     } else if (specialId === 24) {
       if (player.status !== "exiled") throw new Error("\u042D\u0442\u0443 \u043A\u0430\u0440\u0442\u0443 \u043C\u043E\u0436\u043D\u043E \u0441\u044B\u0433\u0440\u0430\u0442\u044C \u0442\u043E\u043B\u044C\u043A\u043E \u043F\u043E\u0441\u043B\u0435 \u0438\u0437\u0433\u043D\u0430\u043D\u0438\u044F.");
@@ -3566,6 +3613,7 @@
         engine.roundEffects.previousVoteTargets = { ...engine.votes };
         engine.phase = PHASES.VOTING;
         engine.voteResult = emptyVoteResult();
+        advanceVoteCycle(engine);
         resetVotes(engine);
         const restoredPlayer = engine.players[playerId];
         restoredPlayer.revealedTraits.special = engine.characters[playerId].special;
@@ -3584,6 +3632,7 @@
       engine.roundEffects ??= {};
       engine.roundEffects.previousVoteTargets = { ...engine.votes };
       engine.voteResult = emptyVoteResult();
+      advanceVoteCycle(engine);
       resetVotes(engine);
     } else if (specialId === 29) {
       const professionTarget = requireTarget();
@@ -3595,11 +3644,6 @@
       if (player.status !== "exiled") throw new Error("\u042D\u0442\u0443 \u043A\u0430\u0440\u0442\u0443 \u043C\u043E\u0436\u043D\u043E \u0441\u044B\u0433\u0440\u0430\u0442\u044C \u0442\u043E\u043B\u044C\u043A\u043E \u043F\u043E\u0441\u043B\u0435 \u0438\u0437\u0433\u043D\u0430\u043D\u0438\u044F.");
       if (engine.capacity <= 1) throw new Error("\u0412\u043C\u0435\u0441\u0442\u0438\u043C\u043E\u0441\u0442\u044C \u0431\u0443\u043D\u043A\u0435\u0440\u0430 \u0443\u0436\u0435 \u043D\u0435\u043B\u044C\u0437\u044F \u0443\u043C\u0435\u043D\u044C\u0448\u0438\u0442\u044C.");
       engine.capacity = Math.max(1, engine.capacity - 1);
-      engine.totalRounds = Math.max(
-        MINIMUM_GAME_ROUNDS,
-        engine.totalRounds,
-        requiredTotalRoundsForCapacity(engine)
-      );
       appendLog(engine, `\u041F\u043E\u0441\u043B\u0435 \u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0435\u0439 \u0434\u0438\u0432\u0435\u0440\u0441\u0438\u0438 \u0432\u043C\u0435\u0441\u0442\u0438\u043C\u043E\u0441\u0442\u044C \u0431\u0443\u043D\u043A\u0435\u0440\u0430 \u0443\u043C\u0435\u043D\u044C\u0448\u0435\u043D\u0430 \u0434\u043E ${engine.capacity}.`);
     } else if (specialId >= 31 && specialId <= 36) {
       const ownTrait = specialId === 31 ? trait : { 32: "biology", 33: "hobby", 34: "baggage", 35: "fact", 36: "profession" }[specialId];
@@ -3867,7 +3911,9 @@
     for (const id of activePlayerIds(engine)) {
       const text = engine.players[id].revealedTraits?.biology;
       const age = Number(text?.match(/\d+/)?.[0]);
-      if (Number.isFinite(age) && (choice === "younger" ? age < 33 : age > 33)) engine.players[id].voteMultiplier = 2;
+      if (Number.isFinite(age) && (choice === "younger" ? age < 33 : age > 33)) {
+        setRoundVoteMultiplier(engine, id);
+      }
     }
   }
   function applyGenderVoteMultiplier(engine, choice) {
@@ -3875,9 +3921,15 @@
     for (const id of activePlayerIds(engine)) {
       const text = String(engine.players[id].revealedTraits?.biology ?? "").toLowerCase();
       if (choice === "female" && text.includes("\u0436\u0435\u043D\u0449") || choice === "male" && text.includes("\u043C\u0443\u0436\u0447")) {
-        engine.players[id].voteMultiplier = 2;
+        setRoundVoteMultiplier(engine, id);
       }
     }
+  }
+  function setRoundVoteMultiplier(engine, playerId) {
+    engine.roundEffects ??= {};
+    engine.roundEffects.voteMultiplierPlayers ??= {};
+    engine.roundEffects.voteMultiplierPlayers[playerId] = true;
+    engine.players[playerId].voteMultiplier = 2;
   }
   function applyNeighborVoteMultiplier(engine, playerId, choice) {
     if (!["before", "after"].includes(choice)) throw new Error("\u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u0438\u0433\u0440\u043E\u043A\u043E\u0432 \u0434\u043E \u0438\u043B\u0438 \u043F\u043E\u0441\u043B\u0435 \u0441\u0435\u0431\u044F.");
@@ -3897,6 +3949,10 @@
     "currentPlayerIndex",
     "randomState",
     "players",
+    "initialPlayerCount",
+    "voteSchedule",
+    "completedVotesByRound",
+    "voteCycle",
     "characters",
     "votes",
     "voteResult",
@@ -3928,8 +3984,13 @@
     return Object.fromEntries(SPECIAL_SNAPSHOT_KEYS.filter((key) => engine[key] !== void 0).map((key) => [key, structuredClone(engine[key])]));
   }
   function restoreSpecialSnapshot(engine, snapshot) {
+    const currentVoteCycle = Math.max(0, Math.trunc(Number(engine.voteCycle) || 0));
     for (const key of SPECIAL_SNAPSHOT_KEYS) delete engine[key];
     for (const [key, value] of Object.entries(snapshot)) engine[key] = structuredClone(value);
+    engine.voteCycle = Math.max(
+      currentVoteCycle,
+      Math.max(0, Math.trunc(Number(engine.voteCycle) || 0))
+    );
   }
   function cancelLastSpecial(engine, cancellerId) {
     const previous = engine.lastSpecialSnapshot;
@@ -4302,6 +4363,21 @@
       player.revealedTraits[trait] = character[trait];
     }
   }
+  function revealAllPlayersTraits(engine) {
+    let revealedSomething = false;
+    for (const playerId of engine.order ?? []) {
+      const player = engine.players?.[playerId];
+      const character = engine.characters?.[playerId];
+      if (!player || !character) continue;
+      if (TRAIT_KEYS.some((trait) => player.revealedTraits?.[trait] !== character[trait])) {
+        revealedSomething = true;
+      }
+      revealAllTraits(engine, playerId);
+    }
+    if (revealedSomething) {
+      appendLog(engine, "\u0424\u0438\u043D\u0430\u043B: \u0440\u0430\u0441\u043A\u0440\u044B\u0442\u044B \u0432\u0441\u0435 \u043A\u0430\u0440\u0442\u044B \u0432\u0441\u0435\u0445 \u0443\u0447\u0430\u0441\u0442\u043D\u0438\u043A\u043E\u0432.");
+    }
+  }
   function restorePreExileTraits(engine, playerId) {
     const player = engine.players[playerId];
     if (!player || !Array.isArray(player.revealedBeforeExile)) return;
@@ -4386,14 +4462,108 @@
       engine.phase = PHASES.DISCUSSION;
     }
   }
+  function ensureVotingPlan(engine) {
+    const playerCount = Math.max(0, Math.trunc(Number(engine.initialPlayerCount ?? engine.order?.length) || 0));
+    const currentRound = Math.max(1, Math.trunc(Number(engine.round) || 1));
+    const hasVoteScheduleData = engine.voteSchedule && typeof engine.voteSchedule === "object" && !Array.isArray(engine.voteSchedule);
+    const hasCompletedVoteData = engine.completedVotesByRound && typeof engine.completedVotesByRound === "object" && !Array.isArray(engine.completedVotesByRound);
+    const hasVotingPlan = hasVoteScheduleData && hasCompletedVoteData;
+    const totalRounds = Math.max(
+      MINIMUM_GAME_ROUNDS,
+      currentRound,
+      hasVotingPlan ? Math.trunc(Number(engine.totalRounds) || 0) : 0
+    );
+    engine.initialPlayerCount = playerCount;
+    engine.totalRounds = totalRounds;
+    engine.voteCycle = Math.max(0, Math.trunc(Number(engine.voteCycle) || 0));
+    if (!hasVoteScheduleData) {
+      engine.voteSchedule = getRoundVoteSchedule(playerCount, engine.capacity);
+    }
+    for (let round = 1; round <= totalRounds; round += 1) {
+      const target = Number(engine.voteSchedule[round]);
+      engine.voteSchedule[round] = Number.isFinite(target) ? Math.max(0, Math.trunc(target)) : 0;
+    }
+    if (!hasCompletedVoteData) {
+      engine.completedVotesByRound = {};
+      for (let round = 1; round < currentRound; round += 1) {
+        engine.completedVotesByRound[round] = Number(engine.voteSchedule[round] ?? 0);
+      }
+      if (engine.phase === PHASES.RESULTS && engine.voteResult?.status === "exiled") {
+        engine.voteSchedule[currentRound] = Math.max(1, Number(engine.voteSchedule[currentRound] ?? 0));
+        engine.completedVotesByRound[currentRound] = 1;
+      } else if (engine.phase === PHASES.VOTING || engine.phase === PHASES.RESULTS && engine.voteResult?.status === "tie") {
+        engine.voteSchedule[currentRound] = Math.max(1, Number(engine.voteSchedule[currentRound] ?? 0));
+      }
+    }
+  }
+  function roundVoteTarget(engine, round = engine.round) {
+    return Math.max(0, Math.trunc(Number(engine.voteSchedule?.[round]) || 0));
+  }
+  function completedRoundVotes(engine, round = engine.round) {
+    return Math.max(0, Math.trunc(Number(engine.completedVotesByRound?.[round]) || 0));
+  }
+  function remainingRoundVotes(engine, round = engine.round) {
+    return Math.max(0, roundVoteTarget(engine, round) - completedRoundVotes(engine, round));
+  }
+  function markRoundVoteCompleted(engine) {
+    const round = Math.max(1, Number(engine.round ?? 1));
+    const completed = completedRoundVotes(engine, round) + 1;
+    engine.completedVotesByRound ??= {};
+    engine.voteSchedule ??= {};
+    engine.completedVotesByRound[round] = completed;
+    engine.voteSchedule[round] = Math.max(roundVoteTarget(engine, round), completed);
+  }
+  function reconcileVotingPlan(engine, startRound = engine.round) {
+    ensureVotingPlan(engine);
+    const currentRound = Math.max(1, Number(engine.round ?? 1));
+    const firstRound = Math.max(1, Math.trunc(Number(startRound) || currentRound));
+    const activeCount = activePlayerIds(engine).length;
+    const neededVotes = Math.max(0, activeCount - Number(engine.capacity ?? 0));
+    if (firstRound > engine.totalRounds && neededVotes > 0) {
+      engine.totalRounds = firstRound;
+      engine.voteSchedule[firstRound] = Number(engine.voteSchedule[firstRound] ?? 0);
+    }
+    let plannedVotes = 0;
+    for (let round = firstRound; round <= engine.totalRounds; round += 1) {
+      plannedVotes += remainingRoundVotes(engine, round);
+    }
+    if (plannedVotes < neededVotes) {
+      const targetRound = Math.max(firstRound, engine.totalRounds);
+      engine.totalRounds = Math.max(engine.totalRounds, targetRound);
+      engine.voteSchedule[targetRound] = roundVoteTarget(engine, targetRound) + neededVotes - plannedVotes;
+      return;
+    }
+    let excessVotes = plannedVotes - neededVotes;
+    const preserveCurrentVote = firstRound <= currentRound && activeCount > Number(engine.capacity ?? 0) && (engine.phase === PHASES.VOTING || engine.phase === PHASES.RESULTS && engine.voteResult?.status === "tie");
+    for (let round = engine.totalRounds; round >= firstRound && excessVotes > 0; round -= 1) {
+      const completed = completedRoundVotes(engine, round);
+      const minimum = round === currentRound && preserveCurrentVote ? completed + 1 : completed;
+      const removable = Math.max(0, roundVoteTarget(engine, round) - minimum);
+      const removed = Math.min(removable, excessVotes);
+      engine.voteSchedule[round] = roundVoteTarget(engine, round) - removed;
+      excessVotes -= removed;
+    }
+  }
+  function resetSingleVoteEffects(engine) {
+    engine.roundEffects ??= {};
+    const roundMultipliers = engine.roundEffects.voteMultiplierPlayers ?? {};
+    const roundDisabled = engine.roundEffects.voteDisabledPlayers ?? {};
+    delete engine.roundEffects.discreditOwners;
+    delete engine.roundEffects.previousVoteTargets;
+    for (const id of engine.order) {
+      const player = engine.players[id];
+      if (!player) continue;
+      player.voteMultiplier = roundMultipliers[id] ? 2 : 1;
+      player.voteDisabled = Boolean(roundDisabled[id]);
+      player.ignoreVotesIfHalf = false;
+      player.ignoreVotesIfEven = false;
+      player.selfPenaltyAgainst = false;
+      player.loneVoteTriple = false;
+      player.votersGetHealth = false;
+    }
+  }
   function activePlayerIds(engine) {
     return engine.order.filter((id) => engine.players[id]?.status === "active");
-  }
-  function requiredTotalRoundsForCapacity(engine, capacity = engine.capacity) {
-    const round = Math.max(1, Number(engine.round ?? 1));
-    const remainingExiles = Math.max(0, activePlayerIds(engine).length - Number(capacity ?? 0));
-    const currentVoteStillPending = round >= 2 && remainingExiles > 0 && ([PHASES.REVEAL, PHASES.DISCUSSION, PHASES.VOTING].includes(engine.phase) || engine.phase === PHASES.RESULTS && engine.voteResult?.status === "tie");
-    return round + remainingExiles - (currentVoteStillPending ? 1 : 0);
   }
   function revealedOrdinaryTraitCount(player) {
     return ORDINARY_TRAIT_KEYS.filter((trait) => player?.revealedTraits?.[trait]).length;
@@ -4421,6 +4591,10 @@
       engine.players[id].voteSubmitted = false;
       engine.votes[id] = "";
     }
+  }
+  function advanceVoteCycle(engine) {
+    engine.voteCycle = Math.max(0, Math.trunc(Number(engine.voteCycle) || 0)) + 1;
+    return engine.voteCycle;
   }
   function createHiddenTraits() {
     return Object.fromEntries(TRAIT_KEYS.map((trait) => [trait, ""]));
@@ -4911,7 +5085,7 @@
   }
   function bindEvents() {
     ui.createRoomButton.addEventListener("click", () => run(async () => {
-      const roomCode = await createRoom(readPlayerName(), 16);
+      const roomCode = await createRoom(readPlayerName(), 17);
       showConnectedRoom(roomCode);
     }));
     ui.joinRoomButton.addEventListener("click", () => run(async () => {
@@ -5057,8 +5231,10 @@
     });
     ui.hostPlays.addEventListener("change", () => run(syncRoomSettings));
     ui.developerMode.addEventListener("change", () => run(syncRoomSettings));
-    ui.playerCount.addEventListener("change", () => run(syncRoomSettings));
-    ui.bunkerCapacity.addEventListener("change", () => run(syncRoomSettings));
+    ui.playerCount.addEventListener("change", () => {
+      syncBunkerCapacityControl();
+      run(syncRoomSettings);
+    });
     ui.playersList.addEventListener("click", (event) => {
       const button = event.target.closest("[data-kick-player]");
       if (button) run(() => kickPlayer(button.dataset.kickPlayer));
@@ -5218,7 +5394,7 @@
     ui.hostPlays.disabled = !host || playing;
     ui.developerMode.disabled = !host || playing;
     ui.playerCount.disabled = !host || playing;
-    ui.bunkerCapacity.disabled = !host || playing;
+    ui.bunkerCapacity.disabled = true;
     if (host && playing && publicState?.players) {
       ui.hostPlays.checked = Boolean(publicState.players[room.meta.hostId]);
     }
@@ -5248,20 +5424,26 @@
   }
   function getRoomSettings() {
     const settings = room?.meta?.settings ?? {};
+    const playerCount = normalizeRoomNumber(settings.playerCount, 8, 4, 16);
     return {
-      playerCount: normalizeRoomNumber(settings.playerCount, 8, 6, 15),
-      bunkerCapacity: normalizeRoomNumber(settings.bunkerCapacity, 4, 3, 7),
+      playerCount,
+      bunkerCapacity: getOfficialBunkerCapacity(playerCount),
       hostPlays: settings.hostPlays === true,
       developerMode: settings.developerMode === true
     };
   }
   function readRoomSettingsFromControls() {
+    const playerCount = normalizeRoomNumber(ui.playerCount.value, 8, 4, 16);
     return {
-      playerCount: normalizeRoomNumber(ui.playerCount.value, 8, 6, 15),
-      bunkerCapacity: normalizeRoomNumber(ui.bunkerCapacity.value, 4, 3, 7),
+      playerCount,
+      bunkerCapacity: getOfficialBunkerCapacity(playerCount),
       hostPlays: ui.hostPlays.checked,
       developerMode: ui.developerMode.checked
     };
+  }
+  function syncBunkerCapacityControl() {
+    const playerCount = normalizeRoomNumber(ui.playerCount.value, 8, 4, 16);
+    ui.bunkerCapacity.value = String(getOfficialBunkerCapacity(playerCount));
   }
   function normalizeRoomNumber(value, fallback, minimum, maximum) {
     const number = Number(value);
@@ -5317,7 +5499,7 @@
     ui.playersAlive.textContent = activePlayers.length;
     ui.playersTotal.textContent = Object.keys(players).length;
     ui.bunkerSlots.textContent = Number(publicState.capacity ?? 0);
-    const visiblePhase = bunkerVotePending ? bunkerVoteTitle(publicState.pendingBunkerVote) : getPhaseLabel(publicState.phase);
+    const visiblePhase = bunkerVotePending ? bunkerVoteTitle(publicState.pendingBunkerVote) : getDetailedPhaseLabel(publicState.phase);
     ui.roundPhase.textContent = visiblePhase;
     ui.roundTogglePhase.textContent = visiblePhase;
     ui.setupPanel.hidden = true;
@@ -5336,6 +5518,64 @@
       setStatus(getStatusMessage());
     }
   }
+  function getScheduledVotesForRound(round) {
+    const normalizedRound = Math.max(1, Number(round ?? 1));
+    const currentRound = Number(publicState?.round ?? 0);
+    const currentTarget = Number(publicState?.roundVoteTarget);
+    if (normalizedRound === currentRound && Number.isFinite(currentTarget)) {
+      return Math.max(0, currentTarget);
+    }
+    const schedule = publicState?.voteSchedule;
+    if (Array.isArray(schedule)) {
+      const totalRounds = Math.max(1, Number(publicState?.totalRounds ?? 5));
+      const index = schedule.length > totalRounds ? normalizedRound : normalizedRound - 1;
+      return Math.max(0, Number(schedule[index] ?? 0));
+    }
+    if (schedule && typeof schedule === "object") {
+      return Math.max(0, Number(schedule[normalizedRound] ?? 0));
+    }
+    return normalizedRound === 1 ? 0 : 1;
+  }
+  function getCurrentRoundVoteProgress() {
+    const target = getScheduledVotesForRound(publicState?.round);
+    const completed = Math.min(target, Math.max(0, Number(publicState?.roundVotesCompleted ?? 0)));
+    const resultAlreadyCounted = publicState?.phase === PHASES.RESULTS && publicState?.voteResult?.status === "exiled";
+    const current = target > 0 ? Math.min(target, Math.max(1, completed + (resultAlreadyCounted ? 0 : 1))) : 0;
+    return { target, completed, current };
+  }
+  function getVoteProgressText() {
+    const { target, current } = getCurrentRoundVoteProgress();
+    return target > 0 ? `${current}/${target}` : "";
+  }
+  function voteCountText(count) {
+    const value = Math.max(0, Number(count) || 0);
+    const remainder100 = value % 100;
+    const remainder10 = value % 10;
+    const noun = remainder100 >= 11 && remainder100 <= 14 ? "\u0433\u043E\u043B\u043E\u0441\u043E\u0432\u0430\u043D\u0438\u0439" : remainder10 === 1 ? "\u0433\u043E\u043B\u043E\u0441\u043E\u0432\u0430\u043D\u0438\u0435" : remainder10 >= 2 && remainder10 <= 4 ? "\u0433\u043E\u043B\u043E\u0441\u043E\u0432\u0430\u043D\u0438\u044F" : "\u0433\u043E\u043B\u043E\u0441\u043E\u0432\u0430\u043D\u0438\u0439";
+    return `${value} ${noun}`;
+  }
+  function getDetailedPhaseLabel(phase) {
+    const { target, completed } = getCurrentRoundVoteProgress();
+    const progress = getVoteProgressText();
+    if (phase === PHASES.VOTING && progress) return `\u0413\u043E\u043B\u043E\u0441\u043E\u0432\u0430\u043D\u0438\u0435 ${progress}`;
+    if (phase === PHASES.RESULTS && progress) return `\u0420\u0435\u0437\u0443\u043B\u044C\u0442\u0430\u0442 \u0433\u043E\u043B\u043E\u0441\u043E\u0432\u0430\u043D\u0438\u044F ${progress}`;
+    if (phase === PHASES.DISCUSSION && completed < target && progress) return `\u041E\u0431\u0441\u0443\u0436\u0434\u0435\u043D\u0438\u0435 \xB7 \u0434\u0430\u043B\u0435\u0435 ${progress}`;
+    if (phase === PHASES.DISCUSSION && completed >= target) return "\u041E\u0431\u0441\u0443\u0436\u0434\u0435\u043D\u0438\u0435 \xB7 \u0431\u0435\u0437 \u0433\u043E\u043B\u043E\u0441\u043E\u0432\u0430\u043D\u0438\u044F";
+    return getPhaseLabel(phase);
+  }
+  function getRoundTimelineStatus(round, complete, current) {
+    const target = getScheduledVotesForRound(round);
+    if (complete) return target > 0 ? `\u041F\u0440\u043E\u0439\u0434\u0435\u043D\u043E \xB7 ${voteCountText(target)}` : "\u041F\u0440\u043E\u0439\u0434\u0435\u043D\u043E \xB7 \u0431\u0435\u0437 \u0433\u043E\u043B\u043E\u0441\u043E\u0432\u0430\u043D\u0438\u044F";
+    if (!current) return target > 0 ? `\u041E\u0436\u0438\u0434\u0430\u0435\u0442 \xB7 ${voteCountText(target)}` : "\u041E\u0436\u0438\u0434\u0430\u0435\u0442 \xB7 \u0431\u0435\u0437 \u0433\u043E\u043B\u043E\u0441\u043E\u0432\u0430\u043D\u0438\u044F";
+    const phase = publicState?.phase;
+    const progress = getVoteProgressText();
+    if ([PHASES.VOTING, PHASES.RESULTS].includes(phase) && progress) {
+      return `${getPhaseLabel(phase)} \xB7 ${progress}`;
+    }
+    if (target === 0) return `${getPhaseLabel(phase)} \xB7 \u0431\u0435\u0437 \u0433\u043E\u043B\u043E\u0441\u043E\u0432\u0430\u043D\u0438\u044F`;
+    if (phase === PHASES.DISCUSSION && progress) return `\u041E\u0431\u0441\u0443\u0436\u0434\u0435\u043D\u0438\u0435 \xB7 \u0434\u0430\u043B\u0435\u0435 ${progress}`;
+    return `${getPhaseLabel(phase)} \xB7 ${voteCountText(target)}`;
+  }
   function renderRoundProgress() {
     const currentRound = Number(publicState?.round ?? 0);
     const totalRounds = Math.max(currentRound, Number(publicState?.totalRounds ?? 0));
@@ -5350,7 +5590,7 @@
       const current = round === currentRound && !finalStage;
       number.textContent = String(round).padStart(2, "0");
       label.textContent = `\u0420\u0430\u0443\u043D\u0434 ${round}`;
-      status.textContent = complete ? "\u041F\u0440\u043E\u0439\u0434\u0435\u043D" : current ? getPhaseLabel(publicState.phase) : "\u041E\u0436\u0438\u0434\u0430\u0435\u0442";
+      status.textContent = getRoundTimelineStatus(round, complete, current);
       item.classList.toggle("is-complete", complete);
       item.classList.toggle("is-current", current);
       if (current) item.setAttribute("aria-current", "step");
@@ -6009,7 +6249,8 @@
     const isLastExiled = myPlayer?.status === "exiled" && multiplayer?.user?.uid === publicState.lastExiledPlayerId;
     const canVote = Boolean(myPlayer && (myPlayer.status === "active" || isLastExiled || myPlayer.persistentVoter) && !myPlayer.voteDisabled);
     ui.votePanel.hidden = ![PHASES.VOTING, PHASES.RESULTS].includes(publicState.phase);
-    ui.voteRoundLabel.textContent = `\u0420\u0430\u0443\u043D\u0434 ${publicState.round}`;
+    const voteProgress = getVoteProgressText();
+    ui.voteRoundLabel.textContent = `\u0420\u0430\u0443\u043D\u0434 ${publicState.round}${voteProgress ? ` \xB7 \u0433\u043E\u043B\u043E\u0441\u043E\u0432\u0430\u043D\u0438\u0435 ${voteProgress}` : ""}`;
     if (selectedVoteTarget && (!players[selectedVoteTarget] || revoteCandidates.length && !revoteCandidates.includes(selectedVoteTarget))) {
       selectedVoteTarget = "";
     }
@@ -6032,21 +6273,23 @@
   }
   function voteStatusText(players) {
     const result = publicState.voteResult;
+    const voteProgress = getVoteProgressText();
+    const votePrefix = voteProgress ? `\u0413\u043E\u043B\u043E\u0441\u043E\u0432\u0430\u043D\u0438\u0435 ${voteProgress}. ` : "";
     if (publicState.phase === PHASES.VOTING) {
       const eligibleVoters = Object.entries(players).filter(([id, player]) => (player.status === "active" || player.persistentVoter || player.status === "exiled" && id === publicState.lastExiledPlayerId) && !player.voteDisabled);
       const submitted = eligibleVoters.filter(([, player]) => player.voteSubmitted).length;
       const progress = `\u041F\u0440\u043E\u0433\u043E\u043B\u043E\u0441\u043E\u0432\u0430\u043B\u0438: ${submitted}/${eligibleVoters.length}.`;
       if (result?.status === "tie") {
         const names = (result.candidates ?? []).map((id) => players[id]?.name).filter(Boolean);
-        return `\u041F\u0435\u0440\u0435\u0433\u043E\u043B\u043E\u0441\u043E\u0432\u0430\u043D\u0438\u0435: ${names.join(" \u0438\u043B\u0438 ")}. ${progress} \u0413\u043E\u043B\u043E\u0441 \u043C\u043E\u0436\u043D\u043E \u043C\u0435\u043D\u044F\u0442\u044C \u0434\u043E \u0437\u0430\u043A\u0440\u044B\u0442\u0438\u044F.`;
+        return `${votePrefix}\u041F\u0435\u0440\u0435\u0433\u043E\u043B\u043E\u0441\u043E\u0432\u0430\u043D\u0438\u0435: ${names.join(" \u0438\u043B\u0438 ")}. ${progress} \u0413\u043E\u043B\u043E\u0441 \u043C\u043E\u0436\u043D\u043E \u043C\u0435\u043D\u044F\u0442\u044C \u0434\u043E \u0437\u0430\u043A\u0440\u044B\u0442\u0438\u044F.`;
       }
-      return `\u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u043A\u0430\u043D\u0434\u0438\u0434\u0430\u0442\u0430. ${progress} \u0413\u043E\u043B\u043E\u0441 \u043C\u043E\u0436\u043D\u043E \u043C\u0435\u043D\u044F\u0442\u044C \u0434\u043E \u0437\u0430\u043A\u0440\u044B\u0442\u0438\u044F \u0433\u043E\u043B\u043E\u0441\u043E\u0432\u0430\u043D\u0438\u044F.`;
+      return `${votePrefix}\u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u043A\u0430\u043D\u0434\u0438\u0434\u0430\u0442\u0430. ${progress} \u0413\u043E\u043B\u043E\u0441 \u043C\u043E\u0436\u043D\u043E \u043C\u0435\u043D\u044F\u0442\u044C \u0434\u043E \u0437\u0430\u043A\u0440\u044B\u0442\u0438\u044F \u0433\u043E\u043B\u043E\u0441\u043E\u0432\u0430\u043D\u0438\u044F.`;
     }
     if (publicState.phase === PHASES.RESULTS && result?.status === "exiled") {
-      return `${players[result.exiledPlayerId]?.name ?? "\u0418\u0433\u0440\u043E\u043A"} \u0438\u0437\u0433\u043D\u0430\u043D \u0438\u0437 \u0433\u0440\u0443\u043F\u043F\u044B.`;
+      return `${votePrefix}${players[result.exiledPlayerId]?.name ?? "\u0418\u0433\u0440\u043E\u043A"} \u0438\u0437\u0433\u043D\u0430\u043D \u0438\u0437 \u0433\u0440\u0443\u043F\u043F\u044B.`;
     }
     if (publicState.phase === PHASES.RESULTS && result?.status === "tie") {
-      return "\u041D\u0438\u0447\u044C\u044F. \u0412\u0435\u0434\u0443\u0449\u0438\u0439 \u0434\u043E\u043B\u0436\u0435\u043D \u043D\u0430\u0447\u0430\u0442\u044C \u043F\u0435\u0440\u0435\u0433\u043E\u043B\u043E\u0441\u043E\u0432\u0430\u043D\u0438\u0435.";
+      return `${votePrefix}\u041D\u0438\u0447\u044C\u044F. \u0412\u0435\u0434\u0443\u0449\u0438\u0439 \u0434\u043E\u043B\u0436\u0435\u043D \u043D\u0430\u0447\u0430\u0442\u044C \u043F\u0435\u0440\u0435\u0433\u043E\u043B\u043E\u0441\u043E\u0432\u0430\u043D\u0438\u0435.`;
     }
     if (publicState.phase === PHASES.FINISHED && publicState.threatResolution?.status === "failed") {
       return "\u0424\u0438\u043D\u0430\u043B\u044C\u043D\u0430\u044F \u0443\u0433\u0440\u043E\u0437\u0430 \u043D\u0435 \u0443\u0441\u0442\u0440\u0430\u043D\u0435\u043D\u0430 \u2014 \u0431\u0443\u043D\u043A\u0435\u0440 \u043D\u0435 \u0432\u044B\u0436\u0438\u043B.";
@@ -6066,12 +6309,15 @@
     );
     const currentPlayerId = publicState.order?.[publicState.currentPlayerIndex];
     const currentPlayer = currentPlayerId ? publicState.players?.[currentPlayerId] : null;
+    const { target: voteTarget, completed: completedVotes, current: currentVote } = getCurrentRoundVoteProgress();
+    const activePlayerCount = Object.values(publicState.players ?? {}).filter((player) => player.status === "active").length;
+    const hasAnotherVote = completedVotes < voteTarget && activePlayerCount > Number(publicState.capacity ?? 0);
     ui.skipTurn.hidden = !host || phase !== PHASES.REVEAL || !currentPlayer;
     ui.skipTurn.disabled = bunkerVotePending && !pendingSpecialAction || !host || phase !== PHASES.REVEAL || !currentPlayer;
     ui.skipTurn.textContent = pendingSpecialAction ? "\u041E\u0442\u043C\u0435\u043D\u0438\u0442\u044C \u0437\u0430\u0432\u0438\u0441\u0448\u0435\u0435 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435 \u0441\u043F\u0435\u0446\u043A\u0430\u0440\u0442\u044B" : currentPlayer ? `\u041F\u0440\u043E\u043F\u0443\u0441\u0442\u0438\u0442\u044C \u0445\u043E\u0434: ${currentPlayer.name}` : "\u041F\u0440\u043E\u043F\u0443\u0441\u0442\u0438\u0442\u044C \u0445\u043E\u0434";
     ui.nextPhase.hidden = !host || ![PHASES.DISCUSSION, PHASES.VOTING, PHASES.RESULTS].includes(phase);
     ui.nextPhase.disabled = bunkerVotePending && !pendingSpecialAction || !host;
-    ui.nextPhase.textContent = pendingSpecialAction ? "\u041E\u0442\u043C\u0435\u043D\u0438\u0442\u044C \u0437\u0430\u0432\u0438\u0441\u0448\u0435\u0435 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435 \u0441\u043F\u0435\u0446\u043A\u0430\u0440\u0442\u044B" : phase === PHASES.DISCUSSION ? publicState.round === 1 ? "\u041D\u0430\u0447\u0430\u0442\u044C \u0440\u0430\u0443\u043D\u0434 2 \u0431\u0435\u0437 \u0433\u043E\u043B\u043E\u0441\u043E\u0432\u0430\u043D\u0438\u044F \u2192" : "\u041D\u0430\u0447\u0430\u0442\u044C \u0433\u043E\u043B\u043E\u0441\u043E\u0432\u0430\u043D\u0438\u0435 \u2192" : phase === PHASES.VOTING ? "\u0417\u0430\u043A\u0440\u044B\u0442\u044C \u0433\u043E\u043B\u043E\u0441\u043E\u0432\u0430\u043D\u0438\u0435 \u2192" : publicState.voteResult?.status === "tie" ? "\u041F\u0435\u0440\u0435\u0433\u043E\u043B\u043E\u0441\u043E\u0432\u0430\u0442\u044C \u2192" : "\u0421\u043B\u0435\u0434\u0443\u044E\u0449\u0438\u0439 \u0440\u0430\u0443\u043D\u0434 \u2192";
+    ui.nextPhase.textContent = pendingSpecialAction ? "\u041E\u0442\u043C\u0435\u043D\u0438\u0442\u044C \u0437\u0430\u0432\u0438\u0441\u0448\u0435\u0435 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435 \u0441\u043F\u0435\u0446\u043A\u0430\u0440\u0442\u044B" : phase === PHASES.DISCUSSION ? hasAnotherVote ? `\u041D\u0430\u0447\u0430\u0442\u044C \u0433\u043E\u043B\u043E\u0441\u043E\u0432\u0430\u043D\u0438\u0435 ${completedVotes + 1}/${voteTarget} \u2192` : Number(publicState.round ?? 0) >= Number(publicState.totalRounds ?? 0) ? "\u0417\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u044C \u0440\u0430\u0443\u043D\u0434 \u2192" : `\u041D\u0430\u0447\u0430\u0442\u044C \u0440\u0430\u0443\u043D\u0434 ${Number(publicState.round ?? 0) + 1} \u0431\u0435\u0437 \u0433\u043E\u043B\u043E\u0441\u043E\u0432\u0430\u043D\u0438\u044F \u2192` : phase === PHASES.VOTING ? `\u0417\u0430\u043A\u0440\u044B\u0442\u044C \u0433\u043E\u043B\u043E\u0441\u043E\u0432\u0430\u043D\u0438\u0435${voteTarget > 0 ? ` ${currentVote}/${voteTarget}` : ""} \u2192` : publicState.voteResult?.status === "tie" ? `\u041F\u0435\u0440\u0435\u0433\u043E\u043B\u043E\u0441\u043E\u0432\u0430\u0442\u044C${voteTarget > 0 ? ` ${currentVote}/${voteTarget}` : ""} \u2192` : hasAnotherVote ? `\u041F\u043E\u0434\u0433\u043E\u0442\u043E\u0432\u0438\u0442\u044C \u0433\u043E\u043B\u043E\u0441\u043E\u0432\u0430\u043D\u0438\u0435 ${completedVotes + 1}/${voteTarget} \u2192` : Number(publicState.round ?? 0) >= Number(publicState.totalRounds ?? 0) ? "\u0417\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u044C \u0440\u0430\u0443\u043D\u0434 \u2192" : "\u0421\u043B\u0435\u0434\u0443\u044E\u0449\u0438\u0439 \u0440\u0430\u0443\u043D\u0434 \u2192";
     ui.roundDrawerToggle.classList.toggle(
       "needs-attention",
       bunkerVotePending || host && (phase === PHASES.REVEAL && Boolean(currentPlayer) || phase === PHASES.THREAT || [PHASES.DISCUSSION, PHASES.VOTING, PHASES.RESULTS].includes(phase))
@@ -6189,7 +6435,8 @@
   }
   async function sendCommand(type, data = {}) {
     if (!multiplayer?.roomId) throw new Error("\u0421\u043D\u0430\u0447\u0430\u043B\u0430 \u0432\u043E\u0439\u0434\u0438\u0442\u0435 \u0432 \u043A\u043E\u043C\u043D\u0430\u0442\u0443.");
-    await multiplayer.sendCommand(type, data, Number(publicState?.revision ?? 0));
+    const commandData = type === "VOTE" ? { ...data, voteCycle: Number(publicState?.voteCycle ?? 0) } : data;
+    await multiplayer.sendCommand(type, commandData, Number(publicState?.revision ?? 0));
   }
   async function sendHostEdit(data) {
     if (!isHost()) throw new Error("\u0420\u0435\u0434\u0430\u043A\u0442\u043E\u0440 \u0434\u043E\u0441\u0442\u0443\u043F\u0435\u043D \u0442\u043E\u043B\u044C\u043A\u043E \u0432\u0435\u0434\u0443\u0449\u0435\u043C\u0443.");
@@ -6225,14 +6472,19 @@
     const phase = publicState?.phase;
     const currentPlayerId = publicState?.order?.[publicState?.currentPlayerIndex];
     const currentPlayer = currentPlayerId ? publicState?.players?.[currentPlayerId] : null;
+    const { target: voteTarget, completed: completedVotes } = getCurrentRoundVoteProgress();
+    const voteProgress = getVoteProgressText();
+    const activePlayerCount = Object.values(publicState?.players ?? {}).filter((player) => player.status === "active").length;
     if (publicState?.pendingBunkerVote) {
       return `\u041A\u0430\u0440\u0442\u0430 \u0431\u0443\u043D\u043A\u0435\u0440\u0430: ${bunkerVoteTitle(publicState.pendingBunkerVote).toLowerCase()}`;
     }
     if (phase === PHASES.REVEAL && currentPlayer) return `\u0425\u043E\u0434\u0438\u0442: ${currentPlayer.name}`;
-    if (phase === PHASES.DISCUSSION && publicState?.round === 1) return "\u041F\u0435\u0440\u0432\u044B\u0439 \u0440\u0430\u0443\u043D\u0434: \u0431\u0435\u0437 \u0433\u043E\u043B\u043E\u0441\u043E\u0432\u0430\u043D\u0438\u044F";
-    if (phase === PHASES.DISCUSSION) return "\u041E\u0431\u0441\u0443\u0436\u0434\u0435\u043D\u0438\u0435 \u043F\u0435\u0440\u0435\u0434 \u0433\u043E\u043B\u043E\u0441\u043E\u0432\u0430\u043D\u0438\u0435\u043C";
-    if (phase === PHASES.VOTING) return "\u0418\u0434\u0451\u0442 \u0433\u043E\u043B\u043E\u0441\u043E\u0432\u0430\u043D\u0438\u0435";
-    if (phase === PHASES.RESULTS) return "\u0420\u0435\u0437\u0443\u043B\u044C\u0442\u0430\u0442\u044B \u0433\u043E\u043B\u043E\u0441\u043E\u0432\u0430\u043D\u0438\u044F";
+    if (phase === PHASES.DISCUSSION && (completedVotes >= voteTarget || activePlayerCount <= Number(publicState?.capacity ?? 0))) {
+      return `\u0420\u0430\u0443\u043D\u0434 ${publicState?.round}: \u0431\u0435\u0437 \u0433\u043E\u043B\u043E\u0441\u043E\u0432\u0430\u043D\u0438\u044F`;
+    }
+    if (phase === PHASES.DISCUSSION) return `\u041E\u0431\u0441\u0443\u0436\u0434\u0435\u043D\u0438\u0435 \u043F\u0435\u0440\u0435\u0434 \u0433\u043E\u043B\u043E\u0441\u043E\u0432\u0430\u043D\u0438\u0435\u043C ${voteProgress}`;
+    if (phase === PHASES.VOTING) return `\u0418\u0434\u0451\u0442 \u0433\u043E\u043B\u043E\u0441\u043E\u0432\u0430\u043D\u0438\u0435 ${voteProgress}`;
+    if (phase === PHASES.RESULTS) return `\u0420\u0435\u0437\u0443\u043B\u044C\u0442\u0430\u0442\u044B \u0433\u043E\u043B\u043E\u0441\u043E\u0432\u0430\u043D\u0438\u044F ${voteProgress}`;
     if (phase === PHASES.THREAT) return "\u0424\u0438\u043D\u0430\u043B\u044C\u043D\u0430\u044F \u0443\u0433\u0440\u043E\u0437\u0430: \u0432\u0435\u0434\u0443\u0449\u0438\u0439 \u043E\u043F\u0440\u0435\u0434\u0435\u043B\u044F\u0435\u0442 \u0438\u0441\u0445\u043E\u0434";
     return getPhaseLabel(phase);
   }
